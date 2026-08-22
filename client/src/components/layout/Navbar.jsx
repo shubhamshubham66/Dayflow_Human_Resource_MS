@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, X, Bell, UserCircle } from 'lucide-react';
+import { LogOut, Menu, X, UserCircle } from 'lucide-react';
 import Logo from '../ui/Logo';
 import Avatar from '../ui/Avatar';
+import NotificationDropdown from './NotificationDropdown';
 import { useAuth } from '../../context/AuthContext';
 
 /**
@@ -44,14 +45,8 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          {/* Notifications (placeholder for Phase 4) */}
-          <button
-            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger-500 rounded-full" />
-          </button>
+          {/* Notifications */}
+          <NotificationDropdown />
 
           {/* Profile dropdown */}
           <div className="relative">

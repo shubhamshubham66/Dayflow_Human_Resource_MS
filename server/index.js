@@ -16,10 +16,27 @@ const app = express();
 // MIDDLEWARE
 // ============================================
 
+// Trust proxy (required for Render / production behind reverse proxy)
+app.set('trust proxy', 1);
+
 // CORS - allow frontend origin with credentials
+// Supports multiple origins for development + production
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.some((allowed) => origin.startsWith(allowed) || origin.includes('vercel.app'))) {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
@@ -63,6 +80,18 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 
 // Leave routes
 app.use('/api/leaves', require('./routes/leaveRoutes'));
+
+// Payroll routes
+app.use('/api/payroll', require('./routes/payrollRoutes'));
+
+// Notification routes
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
+// Analytics routes
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+
+// Settings routes
+app.use('/api/settings', require('./routes/settingsRoutes'));
 
 // ============================================
 // ERROR HANDLING

@@ -2,10 +2,14 @@ import axios from 'axios';
 
 /**
  * Axios instance configured for Dayflow API.
- * Handles base URL, credentials, and token refresh on 401.
+ * 
+ * In development: proxied via Vite (/api -> localhost:5000)
+ * In production: uses VITE_API_URL environment variable (Render backend URL)
  */
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -40,7 +44,7 @@ api.interceptors.response.use(
 
       try {
         // Attempt to refresh the token
-        const { data } = await axios.post('/api/auth/refresh-token', {}, {
+        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {}, {
           withCredentials: true,
         });
 

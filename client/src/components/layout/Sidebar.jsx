@@ -24,6 +24,7 @@ const employeeNavItems = [
   { to: '/attendance', label: 'Attendance', icon: Clock },
   { to: '/leave', label: 'Leave', icon: CalendarDays },
   { to: '/payroll', label: 'Payroll', icon: DollarSign },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 const adminNavItems = [
@@ -86,7 +87,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="mt-auto pt-4 border-t border-gray-100">
             <div className="px-4 py-3 bg-primary-50 rounded-lg">
               <p className="text-xs font-medium text-primary-700">Dayflow HRMS</p>
-              <p className="text-xs text-primary-500 mt-0.5">v1.0.0 • Phase 1</p>
+              <p className="text-xs text-primary-500 mt-0.5">v1.0.0 • Complete</p>
             </div>
           </div>
         </nav>
