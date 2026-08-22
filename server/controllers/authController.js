@@ -2,16 +2,94 @@ const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateToken');
 const jwt = require('jsonwebtoken');
 
+// ============================================
+// IN-MEMORY OTP STORE (for on-screen OTP verification)
+// In production, use Redis for multi-instance support
+// ============================================
+const otpStore = new Map(); // key: email, value: { otp, expiresAt }
+
 /**
- * @desc    Register a new user
+ * @desc    Generate and return OTP for email verification
+ * @route   POST /api/auth/send-otp
+ * @access  Public
+ */
+const sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    // Check if email already registered
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: 'This email is already registered.' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store OTP with 5-minute expiry
+    otpStore.set(email.toLowerCase(), {
+      otp,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+    });
+
+    // Clean up expired OTPs periodically
+    for (const [key, value] of otpStore.entries()) {
+      if (value.expiresAt < Date.now()) otpStore.delete(key);
+    }
+
+    console.log(`📧 OTP generated for ${email}: ${otp}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP generated successfully.',
+      otp, // Sending OTP in response so it shows on screen
+      expiresIn: 300, // 5 minutes in seconds
+    });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate OTP.' });
+  }
+};
+
+/**
+ * @desc    Register a new user (with OTP verification)
  * @route   POST /api/auth/register
  * @access  Public
  */
 const register = async (req, res) => {
   try {
-    const { employeeId, fullName, email, password, role } = req.body;
+    const { employeeId, fullName, email, password, role, otp } = req.body;
 
-    // Check if user already exists (email or employeeId)
+    // Verify OTP
+    const storedOtp = otpStore.get(email.toLowerCase());
+    if (!storedOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP not found. Please request a new OTP first.',
+      });
+    }
+    if (storedOtp.expiresAt < Date.now()) {
+      otpStore.delete(email.toLowerCase());
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new one.',
+      });
+    }
+    if (storedOtp.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP. Please check and try again.',
+      });
+    }
+
+    // OTP verified — remove from store
+    otpStore.delete(email.toLowerCase());
+
+    // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { employeeId: employeeId.toUpperCase() }],
     });
@@ -24,14 +102,14 @@ const register = async (req, res) => {
       });
     }
 
-    // Create user (email verification disabled — auto-verified)
+    // Create user (verified since OTP was validated)
     const user = new User({
       employeeId: employeeId.toUpperCase(),
       fullName,
       email,
       password,
       role: role || 'employee',
-      isVerified: true, // Auto-verify all users (email verification disabled)
+      isVerified: true,
     });
     await user.save();
 
@@ -42,29 +120,19 @@ const register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error.message || error);
-    console.error('Full error:', JSON.stringify(error, null, 2));
 
-    // Handle Mongoose duplicate key error
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: 'A user with this email or Employee ID already exists.',
       });
     }
-
-    // Handle Mongoose validation error
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((e) => e.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', '),
-      });
+      return res.status(400).json({ success: false, message: messages.join(', ') });
     }
 
-    res.status(500).json({
-      success: false,
-      message: 'Registration failed. Please try again.',
-    });
+    res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
   }
 };
 
@@ -77,57 +145,34 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and explicitly include password field
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password.',
-      });
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    // Check if account is active
     if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account has been deactivated. Please contact HR.',
-      });
+      return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact HR.' });
     }
 
-    // Verify password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password.',
-      });
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
-
-    // Email verification check disabled — can be re-enabled later
-    // if (!user.isVerified) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Please verify your email address before logging in.',
-    //     code: 'EMAIL_NOT_VERIFIED',
-    //   });
-    // }
 
     // Generate tokens
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Save refresh token to database
     user.refreshToken = refreshToken;
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    // Set refresh token as HTTP-only cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -138,10 +183,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Login failed. Please try again.',
-    });
+    res.status(500).json({ success: false, message: 'Login failed. Please try again.' });
   }
 };
 
@@ -153,93 +195,56 @@ const login = async (req, res) => {
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
-
     if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Verification token is required.',
-      });
+      return res.status(400).json({ success: false, message: 'Verification token is required.' });
     }
 
-    // Find user with matching token that hasn't expired
     const user = await User.findOne({
       verificationToken: token,
       verificationTokenExpires: { $gt: Date.now() },
     }).select('+verificationToken +verificationTokenExpires');
 
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired verification token.',
-      });
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification token.' });
     }
 
-    // Mark user as verified and clear token
     user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpires = undefined;
     await user.save({ validateBeforeSave: false });
 
-    res.status(200).json({
-      success: true,
-      message: 'Email verified successfully! You can now log in.',
-    });
+    res.status(200).json({ success: true, message: 'Email verified successfully!' });
   } catch (error) {
-    console.error('Email verification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Verification failed. Please try again.',
-    });
+    res.status(500).json({ success: false, message: 'Verification failed.' });
   }
 };
 
 /**
- * @desc    Refresh access token using refresh token
+ * @desc    Refresh access token
  * @route   POST /api/auth/refresh-token
- * @access  Public (requires valid refresh token cookie)
+ * @access  Public
  */
 const refreshToken = async (req, res) => {
   try {
     const token = req.cookies.refreshToken;
-
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Refresh token not found.',
-      });
+      return res.status(401).json({ success: false, message: 'Refresh token not found.' });
     }
 
-    // Verify refresh token
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-
-    // Find user with matching refresh token
     const user = await User.findById(decoded.userId).select('+refreshToken');
 
     if (!user || user.refreshToken !== token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token.',
-      });
+      return res.status(401).json({ success: false, message: 'Invalid refresh token.' });
     }
 
-    // Generate new access token
     const newAccessToken = generateAccessToken(user._id, user.role);
-
-    res.status(200).json({
-      success: true,
-      accessToken: newAccessToken,
-    });
+    res.status(200).json({ success: true, accessToken: newAccessToken });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Refresh token expired. Please log in again.',
-      });
+      return res.status(401).json({ success: false, message: 'Refresh token expired. Please log in again.' });
     }
-    res.status(500).json({
-      success: false,
-      message: 'Token refresh failed.',
-    });
+    res.status(500).json({ success: false, message: 'Token refresh failed.' });
   }
 };
 
@@ -251,100 +256,58 @@ const refreshToken = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return res.status(404).json({ success: false, message: 'User not found.' });
     }
-
-    res.status(200).json({
-      success: true,
-      user: user.toSafeObject(),
-    });
+    res.status(200).json({ success: true, user: user.toSafeObject() });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch user profile.',
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch user profile.' });
   }
 };
 
 /**
- * @desc    Logout user (clear refresh token)
+ * @desc    Logout user
  * @route   POST /api/auth/logout
  * @access  Private
  */
 const logout = async (req, res) => {
   try {
-    // Clear refresh token from database
     await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
-
-    // Clear cookie
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
     });
-
-    res.status(200).json({
-      success: true,
-      message: 'Logged out successfully.',
-    });
+    res.status(200).json({ success: true, message: 'Logged out successfully.' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Logout failed.',
-    });
+    res.status(500).json({ success: false, message: 'Logout failed.' });
   }
 };
 
 /**
- * @desc    Resend verification email
+ * @desc    Resend OTP
  * @route   POST /api/auth/resend-verification
  * @access  Public
  */
 const resendVerification = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      // Don't reveal if user exists or not (security)
-      return res.status(200).json({
-        success: true,
-        message: 'If this email is registered, a verification link has been sent.',
-      });
-    }
-
-    if (user.isVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is already verified.',
-      });
-    }
-
-    // Generate new token
-    const verificationToken = generateVerificationToken();
-    user.verificationToken = verificationToken;
-    user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await user.save({ validateBeforeSave: false });
-
-    // Send email
-    await sendVerificationEmail(email, user.fullName, verificationToken);
-
-    res.status(200).json({
-      success: true,
-      message: 'If this email is registered, a verification link has been sent.',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to resend verification email.',
-    });
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required.' });
   }
+
+  // Generate new OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore.set(email.toLowerCase(), {
+    otp,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'New OTP generated.',
+    otp,
+    expiresIn: 300,
+  });
 };
 
 module.exports = {
@@ -355,4 +318,5 @@ module.exports = {
   getMe,
   logout,
   resendVerification,
+  sendOtp,
 };

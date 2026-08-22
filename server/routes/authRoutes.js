@@ -10,6 +10,7 @@ const {
   getMe,
   logout,
   resendVerification,
+  sendOtp,
 } = require('../controllers/authController');
 
 const router = express.Router();
@@ -27,6 +28,20 @@ const passwordValidation = body('password')
   .withMessage('Password must contain at least 1 number')
   .matches(/[!@#$%^&*(),.?":{}|<>]/)
   .withMessage('Password must contain at least 1 special character');
+
+// POST /api/auth/send-otp (generate OTP for email)
+router.post(
+  '/send-otp',
+  [
+    body('email')
+      .trim()
+      .isEmail()
+      .withMessage('Please enter a valid email address')
+      .normalizeEmail(),
+  ],
+  validate,
+  sendOtp
+);
 
 // POST /api/auth/register
 router.post(
@@ -60,6 +75,12 @@ router.post(
       .optional()
       .isIn(['employee', 'admin'])
       .withMessage('Role must be either employee or admin'),
+    body('otp')
+      .trim()
+      .notEmpty()
+      .withMessage('OTP is required')
+      .isLength({ min: 6, max: 6 })
+      .withMessage('OTP must be 6 digits'),
   ],
   validate,
   register
