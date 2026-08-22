@@ -56,10 +56,12 @@ app.use(cookieParser());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
   res.status(200).json({
     success: true,
     message: 'Dayflow HRMS API is running',
     timestamp: new Date().toISOString(),
+    dbStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
   });
 });
 

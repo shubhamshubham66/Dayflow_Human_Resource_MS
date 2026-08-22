@@ -30,7 +30,7 @@ const register = async (req, res) => {
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Create user
-    const user = await User.create({
+    const user = new User({
       employeeId: employeeId.toUpperCase(),
       fullName,
       email,
@@ -39,6 +39,7 @@ const register = async (req, res) => {
       verificationToken,
       verificationTokenExpires,
     });
+    await user.save();
 
     // Send verification email (non-blocking — don't fail registration if email fails)
     sendVerificationEmail(email, fullName, verificationToken);
@@ -49,13 +50,23 @@ const register = async (req, res) => {
       user: user.toSafeObject(),
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error:', error.message || error);
+    console.error('Full error:', JSON.stringify(error, null, 2));
 
     // Handle Mongoose duplicate key error
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: 'A user with this email or Employee ID already exists.',
+      });
+    }
+
+    // Handle Mongoose validation error
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', '),
       });
     }
 
