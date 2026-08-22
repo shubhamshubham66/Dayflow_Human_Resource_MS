@@ -306,41 +306,89 @@ const StatsBar = () => {
 };
 
 // ============================================================
-// 4. FEATURES — 6 cards, 3x2 grid
+// 4. FEATURES — Dark blue bg, flowchart-style connected boxes
 // ============================================================
 const FeaturesSection = () => {
   const features = [
-    { icon: Shield, title: 'Secure Role-Based Access', description: 'Separate views and permissions for employees and admins.' },
-    { icon: UserCircle, title: 'Employee Profiles', description: 'Centralized records, documents, and job details.' },
-    { icon: Clock, title: 'Attendance Tracking', description: 'Daily check-in/check-out with live status and calendar view.' },
-    { icon: CalendarDays, title: 'Leave Management', description: 'Apply, approve, and track leave requests in real time.' },
-    { icon: DollarSign, title: 'Payroll & Slips', description: 'Transparent salary structure and downloadable payslips.' },
-    { icon: BarChart3, title: 'Analytics & Reports', description: 'Visual dashboards for attendance, leave, and payroll trends.' },
+    { icon: Shield, title: 'Secure Role-Based Access', description: 'Separate views and permissions for employees and admins.', step: '01' },
+    { icon: UserCircle, title: 'Employee Profile Management', description: 'Centralized records, documents, and job details.', step: '02' },
+    { icon: Clock, title: 'Attendance Tracking', description: 'Daily and weekly check-in/check-out with live status.', step: '03' },
+    { icon: CalendarDays, title: 'Leave & Time-Off Management', description: 'Apply, approve, and track leave in real time.', step: '04' },
+    { icon: DollarSign, title: 'Payroll Visibility', description: 'Transparent salary structure and downloadable slips.', step: '05' },
+    { icon: BarChart3, title: 'Analytics & Reports', description: 'Visual dashboards for attendance and leave trends.', step: '06' },
   ];
 
   return (
-    <section id="features" className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50/50">
-      <div className="max-w-7xl mx-auto">
+    <section id="features" className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#1a2e4a] via-[#2f5597] to-[#1e3a5f] relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/[0.02] rounded-full" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Section header */}
         <FadeIn>
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Everything your HR team needs</h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Powerful modules designed to streamline every aspect of HR management.</p>
+          <div className="text-center mb-16">
+            <p className="text-sm font-semibold text-[#73b234] uppercase tracking-wider mb-3">Our Modules</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">
+              Everything your HR team needs
+            </h2>
+            <p className="mt-4 text-lg text-blue-200/80 max-w-2xl mx-auto">
+              Powerful modules designed to streamline every aspect of human resource management.
+            </p>
           </div>
         </FadeIn>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {/* Flowchart Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 relative">
+          {/* Connector lines (desktop only) */}
+          <div className="hidden lg:block absolute top-[50%] left-[33%] w-[34%] h-0.5 bg-gradient-to-r from-white/20 via-white/10 to-white/20" />
+          <div className="hidden lg:block absolute top-[25%] left-[16%] w-[68%] h-0.5 bg-white/10" />
+          <div className="hidden lg:block absolute top-[75%] left-[16%] w-[68%] h-0.5 bg-white/10" />
+
           {features.map((f, i) => (
-            <FadeIn key={i} delay={i * 80}>
-              <div className="group p-6 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-primary-100 transition-all duration-300">
-                <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary-100 group-hover:scale-110 transition-all">
-                  <f.icon className="w-6 h-6 text-primary-500" />
+            <FadeIn key={i} delay={i * 100}>
+              <div className="group relative">
+                {/* Card */}
+                <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 hover:bg-white/[0.15] hover:border-white/30 hover:scale-[1.02] transition-all duration-300 h-full">
+                  {/* Step number */}
+                  <div className="absolute -top-3 -right-3 w-8 h-8 bg-[#73b234] rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-xs font-bold text-white">{f.step}</span>
+                  </div>
+
+                  {/* Icon */}
+                  <div className="w-14 h-14 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center mb-5 group-hover:bg-[#73b234]/20 group-hover:border-[#73b234]/40 transition-all">
+                    <f.icon className="w-7 h-7 text-[#73b234]" />
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
+                  <p className="text-sm text-blue-200/70 leading-relaxed">{f.description}</p>
+
+                  {/* Bottom accent line */}
+                  <div className="absolute bottom-0 left-6 right-6 h-0.5 bg-gradient-to-r from-transparent via-[#73b234]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.description}</p>
+
+                {/* Connector dot */}
+                <div className="hidden lg:block absolute top-1/2 -right-4 w-2 h-2 bg-white/30 rounded-full" />
               </div>
             </FadeIn>
           ))}
         </div>
+
+        {/* Bottom flow arrow */}
+        <FadeIn delay={600}>
+          <div className="flex justify-center mt-12">
+            <div className="flex items-center gap-3 px-6 py-3 bg-white/10 border border-white/20 rounded-full">
+              <span className="text-sm font-medium text-white/80">All modules work together seamlessly</span>
+              <ArrowRight className="w-4 h-4 text-[#73b234]" />
+            </div>
+          </div>
+        </FadeIn>
       </div>
+    </section>
+  );
+};
     </section>
   );
 };
