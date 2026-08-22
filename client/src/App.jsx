@@ -14,30 +14,28 @@ import VerifyEmail from './pages/VerifyEmail';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import Attendance from './pages/Attendance';
 import Leave from './pages/Leave';
+import Payroll from './pages/Payroll';
 
 // Pages - Admin
 import AdminDashboard from './pages/AdminDashboard';
 import AttendanceManage from './pages/AttendanceManage';
 import LeaveManage from './pages/LeaveManage';
+import PayrollManage from './pages/PayrollManage';
+import Reports from './pages/Reports';
 
 // Pages - Shared (role-aware)
 import Profile from './pages/Profile';
 import EmployeeDetail from './pages/EmployeeDetail';
+import Settings from './pages/Settings';
 
 /**
- * App Root - Defines all routes and access control.
- * Phase 3: Added Attendance & Leave pages for both roles.
- *
- * Route Access:
- * - Public: Landing, SignIn, SignUp, VerifyEmail
- * - Employee: /employee-dashboard, /profile, /attendance, /leave
- * - Admin: /admin-dashboard, /employees/:id, /profile, /attendance-manage, /leave-manage
- * - Both: /profile (own profile)
+ * App Root - All routes and access control.
+ * Phase 4 FINAL: All modules active — Auth, Dashboards, Profile,
+ * Attendance, Leave, Payroll, Reports, Settings.
  */
 const App = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Show full-page loader during initial auth check
   if (isLoading) {
     return <PageLoader message="Loading Dayflow..." />;
   }
@@ -49,10 +47,7 @@ const App = () => {
         path="/"
         element={
           isAuthenticated ? (
-            <Navigate
-              to={user?.role === 'admin' ? '/admin-dashboard' : '/employee-dashboard'}
-              replace
-            />
+            <Navigate to={user?.role === 'admin' ? '/admin-dashboard' : '/employee-dashboard'} replace />
           ) : (
             <Landing />
           )
@@ -62,10 +57,7 @@ const App = () => {
         path="/signin"
         element={
           isAuthenticated ? (
-            <Navigate
-              to={user?.role === 'admin' ? '/admin-dashboard' : '/employee-dashboard'}
-              replace
-            />
+            <Navigate to={user?.role === 'admin' ? '/admin-dashboard' : '/employee-dashboard'} replace />
           ) : (
             <SignIn />
           )
@@ -75,10 +67,7 @@ const App = () => {
         path="/signup"
         element={
           isAuthenticated ? (
-            <Navigate
-              to={user?.role === 'admin' ? '/admin-dashboard' : '/employee-dashboard'}
-              replace
-            />
+            <Navigate to={user?.role === 'admin' ? '/admin-dashboard' : '/employee-dashboard'} replace />
           ) : (
             <SignUp />
           )
@@ -89,141 +78,64 @@ const App = () => {
       {/* ============ PROTECTED: EMPLOYEE ============ */}
       <Route
         path="/employee-dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <EmployeeDashboard />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['employee']}><EmployeeDashboard /></ProtectedRoute>}
       />
       <Route
         path="/attendance"
-        element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <Attendance />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['employee']}><Attendance /></ProtectedRoute>}
       />
       <Route
         path="/leave"
-        element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <Leave />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['employee']}><Leave /></ProtectedRoute>}
+      />
+      <Route
+        path="/payroll"
+        element={<ProtectedRoute allowedRoles={['employee']}><Payroll /></ProtectedRoute>}
       />
 
       {/* ============ PROTECTED: ADMIN ============ */}
       <Route
         path="/admin-dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>}
       />
       <Route
         path="/employees/:id"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <EmployeeDetail />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['admin']}><EmployeeDetail /></ProtectedRoute>}
+      />
+      <Route
+        path="/employees"
+        element={<ProtectedRoute allowedRoles={['admin']}><Navigate to="/admin-dashboard" replace /></ProtectedRoute>}
       />
       <Route
         path="/attendance-manage"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AttendanceManage />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['admin']}><AttendanceManage /></ProtectedRoute>}
       />
       <Route
         path="/leave-manage"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <LeaveManage />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['admin']}><LeaveManage /></ProtectedRoute>}
+      />
+      <Route
+        path="/payroll-manage"
+        element={<ProtectedRoute allowedRoles={['admin']}><PayrollManage /></ProtectedRoute>}
+      />
+      <Route
+        path="/reports"
+        element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>}
       />
 
       {/* ============ PROTECTED: SHARED (BOTH ROLES) ============ */}
       <Route
         path="/profile"
-        element={
-          <ProtectedRoute allowedRoles={['employee', 'admin']}>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* ============ PLACEHOLDER ROUTES (Phase 4) ============ */}
-      <Route
-        path="/payroll"
-        element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <PlaceholderPage title="Payroll" description="View payslips and salary details. Coming in Phase 4." />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/employees"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Navigate to="/admin-dashboard" replace />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/payroll-manage"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <PlaceholderPage title="Payroll Management" description="Process payroll and manage compensation. Coming in Phase 4." />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <PlaceholderPage title="Reports & Analytics" description="View HR analytics and generate reports. Coming in Phase 4." />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['employee', 'admin']}><Profile /></ProtectedRoute>}
       />
       <Route
         path="/settings"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <PlaceholderPage title="Settings" description="System settings and configuration. Coming soon." />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute allowedRoles={['employee', 'admin']}><Settings /></ProtectedRoute>}
       />
 
       {/* ============ CATCH-ALL ============ */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  );
-};
-
-/**
- * Placeholder page for routes that will be built in Phase 4.
- */
-import DashboardLayout from './components/layout/DashboardLayout';
-import Card from './components/ui/Card';
-import { Clock } from 'lucide-react';
-
-const PlaceholderPage = ({ title, description }) => {
-  return (
-    <DashboardLayout>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="text-center max-w-md">
-          <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-primary-400" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">{title}</h2>
-          <p className="text-gray-500 text-sm">{description}</p>
-        </Card>
-      </div>
-    </DashboardLayout>
   );
 };
 

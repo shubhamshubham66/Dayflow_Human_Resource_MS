@@ -64,6 +64,18 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 // Leave routes
 app.use('/api/leaves', require('./routes/leaveRoutes'));
 
+// Payroll routes
+app.use('/api/payroll', require('./routes/payrollRoutes'));
+
+// Notification routes
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
+// Analytics routes
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+
+// Settings routes
+app.use('/api/settings', require('./routes/settingsRoutes'));
+
 // ============================================
 // ERROR HANDLING
 // ============================================
