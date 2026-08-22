@@ -607,14 +607,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="40" height="40" rx="10" fill="#2f5597" />
-                  <path d="M10 20C10 14.477 14.477 10 20 10C25.523 10 30 14.477 30 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M14 24C14 21.239 16.239 19 19 19H21C23.761 19 26 21.239 26 24" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-                  <circle cx="20" cy="27" r="2.5" fill="white" />
-                </svg>
-              </div>
+              <img src="/logo.jpeg" alt="Dayflow" className="w-8 h-8 rounded-lg object-cover" />
               <span className="text-xl font-bold text-white">Dayflow</span>
             </div>
             <p className="text-sm leading-relaxed">
