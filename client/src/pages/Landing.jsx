@@ -204,11 +204,11 @@ const HeroSection = () => {
             </div>
           </FadeIn>
 
-          {/* Right: Dashboard Mockup */}
+          {/* Right: Dashboard Mockup - Real looking preview */}
           <FadeIn delay={200}>
             <div className="relative">
               <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-3 sm:p-4">
-                {/* Fake browser chrome */}
+                {/* Browser chrome */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -219,39 +219,79 @@ const HeroSection = () => {
                     <span className="text-[10px] text-gray-400">dayflow.app/dashboard</span>
                   </div>
                 </div>
-                {/* Dashboard mockup content */}
+
+                {/* Realistic Dashboard Content */}
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-100 rounded-lg" />
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
                     <div>
-                      <div className="h-3 w-32 bg-gray-200 rounded" />
-                      <div className="h-2 w-20 bg-gray-100 rounded mt-1.5" />
+                      <p className="text-sm font-bold text-gray-800">Good Morning, Admin 👋</p>
+                      <p className="text-[10px] text-gray-500">Friday, 22 Aug 2026</p>
+                    </div>
+                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-primary-600">AK</span>
                     </div>
                   </div>
+
+                  {/* Stats Cards */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-white p-3 rounded-lg shadow-sm">
-                      <div className="h-2 w-12 bg-green-200 rounded mb-2" />
-                      <div className="h-5 w-8 bg-green-100 rounded" />
+                    <div className="bg-white p-2.5 rounded-lg shadow-sm border border-gray-100">
+                      <p className="text-[9px] text-gray-500 font-medium">Present Today</p>
+                      <p className="text-lg font-bold text-green-600">92%</p>
                     </div>
-                    <div className="bg-white p-3 rounded-lg shadow-sm">
-                      <div className="h-2 w-12 bg-primary-200 rounded mb-2" />
-                      <div className="h-5 w-8 bg-primary-100 rounded" />
+                    <div className="bg-white p-2.5 rounded-lg shadow-sm border border-gray-100">
+                      <p className="text-[9px] text-gray-500 font-medium">Leave Requests</p>
+                      <p className="text-lg font-bold text-amber-600">5</p>
                     </div>
-                    <div className="bg-white p-3 rounded-lg shadow-sm">
-                      <div className="h-2 w-12 bg-amber-200 rounded mb-2" />
-                      <div className="h-5 w-8 bg-amber-100 rounded" />
+                    <div className="bg-white p-2.5 rounded-lg shadow-sm border border-gray-100">
+                      <p className="text-[9px] text-gray-500 font-medium">Employees</p>
+                      <p className="text-lg font-bold text-primary-600">128</p>
                     </div>
                   </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <div className="h-2 w-24 bg-gray-200 rounded mb-3" />
-                    <div className="flex gap-1 items-end h-16">
-                      {[40, 65, 45, 80, 55, 70, 90].map((h, i) => (
-                        <div key={i} className="flex-1 bg-primary-200 rounded-t" style={{ height: `${h}%` }} />
+
+                  {/* Attendance Chart */}
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                    <p className="text-[10px] font-semibold text-gray-700 mb-2">Weekly Attendance</p>
+                    <div className="flex gap-1.5 items-end h-20">
+                      {[
+                        { h: 75, label: 'Mon' },
+                        { h: 90, label: 'Tue' },
+                        { h: 60, label: 'Wed' },
+                        { h: 95, label: 'Thu' },
+                        { h: 80, label: 'Fri' },
+                      ].map((bar, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div
+                            className="w-full bg-gradient-to-t from-primary-500 to-primary-300 rounded-t transition-all duration-500"
+                            style={{ height: `${bar.h}%` }}
+                          />
+                          <span className="text-[8px] text-gray-400">{bar.label}</span>
+                        </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Activity */}
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                    <p className="text-[10px] font-semibold text-gray-700 mb-2">Recent Activity</p>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        <p className="text-[9px] text-gray-600">Priya Sharma checked in at 9:02 AM</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <p className="text-[9px] text-gray-600">Marcus Chen applied for leave (2 days)</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                        <p className="text-[9px] text-gray-600">Payroll generated for July 2026</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+
               {/* Floating badges */}
               <div className="absolute -top-4 -right-4 bg-white px-3 py-2 rounded-lg shadow-lg border border-gray-100 animate-float">
                 <div className="flex items-center gap-2">
