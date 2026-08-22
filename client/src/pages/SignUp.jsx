@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, IdCard, User, Mail, Lock, Shield } from 'lucide-react';
+import { UserPlus, Hash, User, Mail, Lock, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AuthLayout from '../components/layout/AuthLayout';
 import Input from '../components/ui/Input';
@@ -136,7 +136,7 @@ const SignUp = () => {
           label="Employee ID"
           name="employeeId"
           placeholder="e.g., EMP-001"
-          icon={IdCard}
+          icon={Hash}
           value={values.employeeId}
           onChange={handleChange}
           onBlur={handleBlur}
