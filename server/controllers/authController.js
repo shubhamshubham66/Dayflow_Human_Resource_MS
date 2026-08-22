@@ -38,15 +38,21 @@ const register = async (req, res) => {
       role: role || 'employee',
       verificationToken,
       verificationTokenExpires,
+      // Auto-verify if email service is not configured
+      isVerified: !process.env.EMAIL_USER || !process.env.EMAIL_PASS ? true : false,
     });
     await user.save();
 
     // Send verification email (non-blocking — don't fail registration if email fails)
-    sendVerificationEmail(email, fullName, verificationToken);
+    const emailSent = process.env.EMAIL_USER && process.env.EMAIL_PASS
+      ? await sendVerificationEmail(email, fullName, verificationToken)
+      : false;
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please check your email to verify your account.',
+      message: user.isVerified
+        ? 'Registration successful! You can now sign in.'
+        : 'Registration successful! Please check your email to verify your account.',
       user: user.toSafeObject(),
     });
   } catch (error) {
