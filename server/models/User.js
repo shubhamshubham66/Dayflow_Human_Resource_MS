@@ -3,10 +3,11 @@ const bcrypt = require('bcryptjs');
 
 /**
  * User Schema for Dayflow HRMS
- * Supports Employee and Admin/HR roles with email verification
+ * Phase 2: Extended with personal details, job info, salary, documents, profile picture
  */
 const userSchema = new mongoose.Schema(
   {
+    // ============ CORE AUTH FIELDS ============
     employeeId: {
       type: String,
       required: [true, 'Employee ID is required'],
@@ -33,7 +34,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
-      select: false, // Don't include password in queries by default
+      select: false,
     },
     role: {
       type: String,
@@ -43,6 +44,91 @@ const userSchema = new mongoose.Schema(
       },
       default: 'employee',
     },
+    profilePicture: {
+      type: String, // URL or base64
+      default: '',
+    },
+
+    // ============ PERSONAL DETAILS ============
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other', ''],
+      default: '',
+    },
+    address: {
+      street: { type: String, trim: true, default: '' },
+      city: { type: String, trim: true, default: '' },
+      state: { type: String, trim: true, default: '' },
+      zipCode: { type: String, trim: true, default: '' },
+      country: { type: String, trim: true, default: '' },
+    },
+    emergencyContact: {
+      name: { type: String, trim: true, default: '' },
+      relationship: { type: String, trim: true, default: '' },
+      phone: { type: String, trim: true, default: '' },
+    },
+
+    // ============ JOB DETAILS ============
+    department: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    designation: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    dateOfJoining: {
+      type: Date,
+      default: null,
+    },
+    employmentType: {
+      type: String,
+      enum: ['full-time', 'part-time', 'contract', 'intern', ''],
+      default: '',
+    },
+    reportingManager: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    workLocation: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    // ============ SALARY STRUCTURE ============
+    salary: {
+      basic: { type: Number, default: 0 },
+      hra: { type: Number, default: 0 },
+      allowances: { type: Number, default: 0 },
+      deductions: { type: Number, default: 0 },
+      netSalary: { type: Number, default: 0 },
+      currency: { type: String, default: 'USD' },
+    },
+
+    // ============ DOCUMENTS ============
+    documents: [
+      {
+        name: { type: String, required: true },
+        type: { type: String, required: true }, // resume, id-proof, offer-letter, etc.
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // ============ AUTH & STATUS FIELDS ============
     isVerified: {
       type: Boolean,
       default: false,
@@ -68,17 +154,15 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
 /**
  * Pre-save middleware: Hash password before saving
- * Only hashes if the password field has been modified
  */
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -101,10 +185,25 @@ userSchema.methods.toSafeObject = function () {
     fullName: this.fullName,
     email: this.email,
     role: this.role,
+    profilePicture: this.profilePicture,
+    phone: this.phone,
+    dateOfBirth: this.dateOfBirth,
+    gender: this.gender,
+    address: this.address,
+    emergencyContact: this.emergencyContact,
+    department: this.department,
+    designation: this.designation,
+    dateOfJoining: this.dateOfJoining,
+    employmentType: this.employmentType,
+    reportingManager: this.reportingManager,
+    workLocation: this.workLocation,
+    salary: this.salary,
+    documents: this.documents,
     isVerified: this.isVerified,
     isActive: this.isActive,
     lastLogin: this.lastLogin,
     createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
   };
 };
 

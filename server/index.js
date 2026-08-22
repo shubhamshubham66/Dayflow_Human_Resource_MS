@@ -49,6 +49,15 @@ app.get('/api/health', (req, res) => {
 // Auth routes
 app.use('/api/auth', require('./routes/authRoutes'));
 
+// Employee routes
+app.use('/api/employees', require('./routes/employeeRoutes'));
+
+// Dashboard routes
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+
+// Activity routes
+app.use('/api/activities', require('./routes/activityRoutes'));
+
 // ============================================
 // ERROR HANDLING
 // ============================================

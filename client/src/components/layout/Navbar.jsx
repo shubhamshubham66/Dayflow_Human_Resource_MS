@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, X, User, Bell } from 'lucide-react';
+import { LogOut, Menu, X, Bell, UserCircle } from 'lucide-react';
 import Logo from '../ui/Logo';
+import Avatar from '../ui/Avatar';
 import { useAuth } from '../../context/AuthContext';
 
 /**
  * Top navigation bar used across authenticated pages.
- * Shows user info, notifications bell, and logout button.
+ * Shows user avatar, notifications bell, profile dropdown with logout.
  */
 const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
   const { user, logout } = useAuth();
@@ -14,8 +15,14 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleLogout = async () => {
+    setShowProfileMenu(false);
     await logout();
     navigate('/signin');
+  };
+
+  const handleViewProfile = () => {
+    setShowProfileMenu(false);
+    navigate('/profile');
   };
 
   return (
@@ -43,7 +50,6 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
-            {/* Notification badge - will be dynamic in Phase 4 */}
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger-500 rounded-full" />
           </button>
 
@@ -51,11 +57,13 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2.5 p-1.5 pr-3 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                <User className="w-4 h-4 text-primary-600" />
-              </div>
+              <Avatar
+                src={user?.profilePicture}
+                name={user?.fullName}
+                size="sm"
+              />
               <div className="hidden sm:block text-left">
                 <p className="text-sm font-medium text-gray-700 leading-tight">
                   {user?.fullName || 'User'}
@@ -73,14 +81,26 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowProfileMenu(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20 animate-slide-down">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-800">{user?.fullName}</p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-20 animate-slide-down">
+                  {/* User info header */}
+                  <div className="px-4 py-2.5 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-800 truncate">{user?.fullName}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                   </div>
+
+                  {/* View Profile link */}
+                  <button
+                    onClick={handleViewProfile}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <UserCircle className="w-4 h-4 text-gray-400" />
+                    View Profile
+                  </button>
+
+                  {/* Logout */}
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger-500 hover:bg-danger-50 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-danger-500 hover:bg-danger-50 transition-colors border-t border-gray-100"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
