@@ -12,9 +12,13 @@ import VerifyEmail from './pages/VerifyEmail';
 
 // Pages - Employee
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import Attendance from './pages/Attendance';
+import Leave from './pages/Leave';
 
 // Pages - Admin
 import AdminDashboard from './pages/AdminDashboard';
+import AttendanceManage from './pages/AttendanceManage';
+import LeaveManage from './pages/LeaveManage';
 
 // Pages - Shared (role-aware)
 import Profile from './pages/Profile';
@@ -22,12 +26,12 @@ import EmployeeDetail from './pages/EmployeeDetail';
 
 /**
  * App Root - Defines all routes and access control.
- * Phase 2: Added profile, employee detail, and shared routes.
+ * Phase 3: Added Attendance & Leave pages for both roles.
  *
  * Route Access:
  * - Public: Landing, SignIn, SignUp, VerifyEmail
- * - Employee: /employee-dashboard, /profile
- * - Admin: /admin-dashboard, /employees/:id, /profile
+ * - Employee: /employee-dashboard, /profile, /attendance, /leave
+ * - Admin: /admin-dashboard, /employees/:id, /profile, /attendance-manage, /leave-manage
  * - Both: /profile (own profile)
  */
 const App = () => {
@@ -91,6 +95,22 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute allowedRoles={['employee']}>
+            <Attendance />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leave"
+        element={
+          <ProtectedRoute allowedRoles={['employee']}>
+            <Leave />
+          </ProtectedRoute>
+        }
+      />
 
       {/* ============ PROTECTED: ADMIN ============ */}
       <Route
@@ -101,8 +121,6 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* Admin: View/Edit specific employee */}
       <Route
         path="/employees/:id"
         element={
@@ -111,10 +129,24 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/attendance-manage"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AttendanceManage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leave-manage"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <LeaveManage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* ============ PROTECTED: SHARED (BOTH ROLES) ============ */}
-
-      {/* Own profile - accessible by both employees and admins */}
       <Route
         path="/profile"
         element={
@@ -124,25 +156,7 @@ const App = () => {
         }
       />
 
-      {/* ============ PLACEHOLDER ROUTES (Phase 3 & 4) ============ */}
-
-      {/* Employee routes - placeholders for Phase 3 */}
-      <Route
-        path="/attendance"
-        element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <PlaceholderPage title="Attendance" description="Clock in/out and view your attendance records. Coming in Phase 3." />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/leave"
-        element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <PlaceholderPage title="Leave Requests" description="Apply for leave and check request status. Coming in Phase 3." />
-          </ProtectedRoute>
-        }
-      />
+      {/* ============ PLACEHOLDER ROUTES (Phase 4) ============ */}
       <Route
         path="/payroll"
         element={
@@ -151,29 +165,11 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* Admin routes - placeholders for Phase 3 & 4 */}
       <Route
         path="/employees"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <Navigate to="/admin-dashboard" replace />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/attendance-manage"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <PlaceholderPage title="Attendance Management" description="Manage team attendance records. Coming in Phase 3." />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/leave-manage"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <PlaceholderPage title="Leave Management" description="Review and approve/reject leave requests. Coming in Phase 3." />
           </ProtectedRoute>
         }
       />
@@ -209,8 +205,7 @@ const App = () => {
 };
 
 /**
- * Placeholder page for routes that will be built in future phases.
- * Shows a clean "coming soon" state within the dashboard layout.
+ * Placeholder page for routes that will be built in Phase 4.
  */
 import DashboardLayout from './components/layout/DashboardLayout';
 import Card from './components/ui/Card';
