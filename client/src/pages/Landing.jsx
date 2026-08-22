@@ -311,11 +311,11 @@ const StatsBar = () => {
 const FeaturesSection = () => {
   const features = [
     { icon: Shield, title: 'Secure Role-Based Access', description: 'Separate views and permissions for employees and admins.', step: '01' },
-    { icon: UserCircle, title: 'Employee Profile Management', description: 'Centralized records, documents, and job details.', step: '02' },
-    { icon: Clock, title: 'Attendance Tracking', description: 'Daily and weekly check-in/check-out with live status.', step: '03' },
-    { icon: CalendarDays, title: 'Leave & Time-Off Management', description: 'Apply, approve, and track leave in real time.', step: '04' },
-    { icon: DollarSign, title: 'Payroll Visibility', description: 'Transparent salary structure and downloadable slips.', step: '05' },
-    { icon: BarChart3, title: 'Analytics & Reports', description: 'Visual dashboards for attendance and leave trends.', step: '06' },
+    { icon: UserCircle, title: 'Employee Profiles', description: 'Centralized records, documents, and job details.', step: '02' },
+    { icon: Clock, title: 'Attendance Tracking', description: 'Daily check-in/check-out with live status and calendar view.', step: '03' },
+    { icon: CalendarDays, title: 'Leave Management', description: 'Apply, approve, and track leave requests in real time.', step: '04' },
+    { icon: DollarSign, title: 'Payroll & Slips', description: 'Transparent salary structure and downloadable payslips.', step: '05' },
+    { icon: BarChart3, title: 'Analytics & Reports', description: 'Visual dashboards for attendance, leave, and payroll trends.', step: '06' },
   ];
 
   return (
