@@ -95,6 +95,9 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 // Settings routes
 app.use('/api/settings', require('./routes/settingsRoutes'));
 
+// Seed routes (demo data)
+app.use('/api/seed', require('./routes/seedRoutes'));
+
 // ============================================
 // ERROR HANDLING
 // ============================================
