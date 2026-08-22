@@ -56,7 +56,9 @@ const LandingNavbar = () => {
   const navLinks = [
     { label: 'Home', href: '#home' },
     { label: 'Features', href: '#features' },
-    { label: 'About', href: '#how-it-works' },
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'About', href: '#about' },
     { label: 'Contact', href: '#footer' },
   ];
 
@@ -65,21 +67,27 @@ const LandingNavbar = () => {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
-          : 'bg-transparent'
+          : 'bg-primary-500'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Left: Logo */}
-          <Logo size="sm" />
+          <Logo size="sm" className={scrolled ? '' : '[&_span]:text-white'} />
 
           {/* Center: Nav links (desktop) */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors"
+                className={`text-sm font-bold relative pb-1 transition-all duration-200
+                  after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:transition-all after:duration-300 hover:after:w-full
+                  ${scrolled
+                    ? 'text-gray-700 hover:text-primary-600 after:bg-primary-500'
+                    : 'text-white hover:text-white/80 after:bg-white'
+                  }
+                `}
               >
                 {link.label}
               </a>
@@ -90,13 +98,21 @@ const LandingNavbar = () => {
           <div className="hidden md:flex items-center gap-3">
             <Link
               to="/signin"
-              className="px-5 py-2.5 text-sm font-semibold text-primary-600 border-2 border-primary-500 rounded-lg hover:bg-primary-50 transition-all"
+              className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                scrolled
+                  ? 'text-primary-600 border-2 border-primary-500 hover:bg-primary-50'
+                  : 'text-white border-2 border-white hover:bg-white/10'
+              }`}
             >
               Sign In
             </Link>
             <Link
               to="/signup"
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-primary-500 rounded-lg hover:bg-primary-600 shadow-sm hover:shadow-md transition-all"
+              className={`px-5 py-2.5 text-sm font-bold rounded-lg shadow-sm hover:shadow-md transition-all ${
+                scrolled
+                  ? 'text-white bg-primary-500 hover:bg-primary-600'
+                  : 'text-primary-600 bg-white hover:bg-gray-100'
+              }`}
             >
               Sign Up
             </Link>
@@ -105,7 +121,7 @@ const LandingNavbar = () => {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className={`md:hidden p-2 rounded-lg ${scrolled ? 'text-gray-600 hover:bg-gray-100' : 'text-white hover:bg-white/10'}`}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -113,8 +129,8 @@ const LandingNavbar = () => {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-100 bg-white animate-slide-down">
-            <div className="flex flex-col gap-2">
+          <div className="md:hidden py-4 border-t border-white/20 bg-white rounded-b-xl shadow-lg animate-slide-down">
+            <div className="flex flex-col gap-1">
               {navLinks.map((link) => (
                 <a
                   key={link.label}
@@ -414,7 +430,7 @@ const HowItWorksSection = () => {
 // ============================================================
 const ForEveryoneSection = () => {
   return (
-    <section className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
+    <section id="about" className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-14">
@@ -501,7 +517,7 @@ const TestimonialsSection = () => {
   ];
 
   return (
-    <section className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section id="testimonials" className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-14">
