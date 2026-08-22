@@ -62,7 +62,7 @@ const sendOtp = async (req, res) => {
  */
 const register = async (req, res) => {
   try {
-    const { employeeId, fullName, email, password, role, otp } = req.body;
+    const { fullName, email, password, role, otp } = req.body;
 
     // Verify OTP
     const storedOtp = otpStore.get(email.toLowerCase());
@@ -90,21 +90,22 @@ const register = async (req, res) => {
     otpStore.delete(email.toLowerCase());
 
     // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { employeeId: employeeId.toUpperCase() }],
-    });
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      const field = existingUser.email === email.toLowerCase() ? 'email' : 'Employee ID';
       return res.status(409).json({
         success: false,
-        message: `A user with this ${field} already exists.`,
+        message: 'A user with this email already exists.',
       });
     }
 
+    // Auto-generate Employee ID (EMP-XXXXX)
+    const count = await User.countDocuments();
+    const employeeId = `EMP-${String(count + 1).padStart(5, '0')}`;
+
     // Create user (verified since OTP was validated)
     const user = new User({
-      employeeId: employeeId.toUpperCase(),
+      employeeId,
       fullName,
       email,
       password,

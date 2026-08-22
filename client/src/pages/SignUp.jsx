@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Hash, User, Mail, Lock, Shield, Send, CheckCircle } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, Shield, Send, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AuthLayout from '../components/layout/AuthLayout';
 import Input from '../components/ui/Input';
@@ -14,7 +14,6 @@ import {
   isEmail,
   isStrongPassword,
   matchesField,
-  isValidEmployeeId,
 } from '../utils/validators';
 import authService from '../services/authService';
 
@@ -54,7 +53,6 @@ const SignUp = () => {
     validateAll,
   } = useFormValidation(
     {
-      employeeId: '',
       fullName: '',
       email: '',
       password: '',
@@ -62,7 +60,6 @@ const SignUp = () => {
       role: '',
     },
     {
-      employeeId: [required('Employee ID'), minLength('Employee ID', 2), maxLength('Employee ID', 20), isValidEmployeeId()],
       fullName: [required('Full Name'), minLength('Full Name', 2), maxLength('Full Name', 100)],
       email: [required('Email'), isEmail()],
       password: [required('Password'), isStrongPassword()],
@@ -146,7 +143,6 @@ const SignUp = () => {
     setIsSubmitting(true);
     try {
       await authService.register({
-        employeeId: values.employeeId,
         fullName: values.fullName,
         email: values.email,
         password: values.password,
@@ -187,18 +183,6 @@ const SignUp = () => {
             {serverError}
           </div>
         )}
-
-        {/* Employee ID */}
-        <Input
-          label="Employee ID"
-          name="employeeId"
-          placeholder="e.g., EMP-001"
-          icon={Hash}
-          value={values.employeeId}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.employeeId ? errors.employeeId : ''}
-        />
 
         {/* Full Name */}
         <Input
