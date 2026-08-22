@@ -389,9 +389,6 @@ const FeaturesSection = () => {
     </section>
   );
 };
-    </section>
-  );
-};
 
 // ============================================================
 // 5. HOW IT WORKS — 4-step timeline
