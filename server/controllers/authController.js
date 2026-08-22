@@ -62,7 +62,7 @@ const sendOtp = async (req, res) => {
  */
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, role, otp } = req.body;
+    const { employeeId, fullName, email, password, role, otp } = req.body;
 
     // Verify OTP
     const storedOtp = otpStore.get(email.toLowerCase());
@@ -90,22 +90,21 @@ const register = async (req, res) => {
     otpStore.delete(email.toLowerCase());
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      $or: [{ email }, { employeeId: employeeId.toUpperCase() }],
+    });
 
     if (existingUser) {
+      const field = existingUser.email === email.toLowerCase() ? 'email' : 'Employee ID';
       return res.status(409).json({
         success: false,
-        message: 'A user with this email already exists.',
+        message: `A user with this ${field} already exists.`,
       });
     }
 
-    // Auto-generate Employee ID (EMP-XXXXX)
-    const count = await User.countDocuments();
-    const employeeId = `EMP-${String(count + 1).padStart(5, '0')}`;
-
     // Create user (verified since OTP was validated)
     const user = new User({
-      employeeId,
+      employeeId: employeeId.toUpperCase(),
       fullName,
       email,
       password,
@@ -149,7 +148,7 @@ const login = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      return res.status(401).json({ success: false, message: 'No account found with this email. Please sign up first.' });
     }
 
     if (!user.isActive) {
@@ -158,7 +157,7 @@ const login = async (req, res) => {
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
     }
 
     // Generate tokens

@@ -47,6 +47,12 @@ router.post(
 router.post(
   '/register',
   [
+    body('employeeId')
+      .trim()
+      .notEmpty()
+      .withMessage('Employee ID is required')
+      .isLength({ min: 2, max: 20 })
+      .withMessage('Employee ID must be 2-20 characters'),
     body('fullName')
       .trim()
       .notEmpty()
