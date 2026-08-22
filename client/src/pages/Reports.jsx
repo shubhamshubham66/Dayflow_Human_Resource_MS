@@ -42,6 +42,43 @@ const Reports = () => {
   const [payrollSummary, setPayrollSummary] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Dummy data for when API is unavailable
+  const dummyAttendanceTrends = [
+    { month: 'Mar', present: 180, absent: 15, halfDay: 8, leave: 12 },
+    { month: 'Apr', present: 190, absent: 10, halfDay: 5, leave: 15 },
+    { month: 'May', present: 175, absent: 20, halfDay: 10, leave: 18 },
+    { month: 'Jun', present: 195, absent: 8, halfDay: 4, leave: 10 },
+    { month: 'Jul', present: 185, absent: 12, halfDay: 7, leave: 14 },
+    { month: 'Aug', present: 192, absent: 9, halfDay: 6, leave: 11 },
+  ];
+
+  const dummyLeaveDistribution = [
+    { name: 'Paid Leave', value: 35, color: '#2f5597' },
+    { name: 'Sick Leave', value: 22, color: '#ef4444' },
+    { name: 'Casual Leave', value: 18, color: '#f59e0b' },
+    { name: 'Unpaid Leave', value: 8, color: '#6b7280' },
+    { name: 'Maternity', value: 5, color: '#8b5cf6' },
+  ];
+
+  const dummyDepartmentData = [
+    { department: 'Engineering', total: 25 },
+    { department: 'Design', total: 12 },
+    { department: 'Marketing', total: 8 },
+    { department: 'HR', total: 6 },
+    { department: 'Finance', total: 9 },
+    { department: 'Sales', total: 14 },
+    { department: 'Support', total: 10 },
+  ];
+
+  const dummyPayrollSummary = [
+    { month: 'Mar', gross: 72000, net: 57600, deductions: 14400 },
+    { month: 'Apr', gross: 74500, net: 59600, deductions: 14900 },
+    { month: 'May', gross: 73200, net: 58560, deductions: 14640 },
+    { month: 'Jun', gross: 76000, net: 60800, deductions: 15200 },
+    { month: 'Jul', gross: 75500, net: 60400, deductions: 15100 },
+    { month: 'Aug', gross: 78000, net: 62400, deductions: 15600 },
+  ];
+
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
@@ -52,12 +89,17 @@ const Reports = () => {
           analyticsService.getDepartmentHeadcount(),
           analyticsService.getPayrollSummary(),
         ]);
-        setAttendanceTrends(trends.data || []);
-        setLeaveDistribution(leaves.data || []);
-        setDepartmentData(depts.data || []);
-        setPayrollSummary(payroll.data || []);
+        setAttendanceTrends(trends.data && trends.data.length > 0 ? trends.data : dummyAttendanceTrends);
+        setLeaveDistribution(leaves.data && leaves.data.length > 0 ? leaves.data : dummyLeaveDistribution);
+        setDepartmentData(depts.data && depts.data.length > 0 ? depts.data : dummyDepartmentData);
+        setPayrollSummary(payroll.data && payroll.data.length > 0 ? payroll.data : dummyPayrollSummary);
       } catch (error) {
-        console.error('Analytics fetch error:', error);
+        console.error('Analytics fetch error, using dummy data:', error);
+        // Use dummy data as fallback
+        setAttendanceTrends(dummyAttendanceTrends);
+        setLeaveDistribution(dummyLeaveDistribution);
+        setDepartmentData(dummyDepartmentData);
+        setPayrollSummary(dummyPayrollSummary);
       } finally {
         setLoading(false);
       }

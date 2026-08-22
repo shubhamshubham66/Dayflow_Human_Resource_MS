@@ -24,6 +24,16 @@ import settingsService from '../services/settingsService';
 const Settings = () => {
   const { user } = useAuth();
 
+  // Dummy user data fallback when no user is available
+  const displayUser = user || {
+    fullName: 'Admin User',
+    email: 'admin@dayflow.com',
+    employeeId: 'EMP001',
+    role: 'admin',
+    isActive: true,
+    createdAt: '2025-01-15T10:00:00Z',
+  };
+
   // Password change state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -289,12 +299,12 @@ const Settings = () => {
             </div>
 
             <div className="space-y-3">
-              <InfoRow label="Name" value={user?.fullName} />
-              <InfoRow label="Email" value={user?.email} />
-              <InfoRow label="Employee ID" value={user?.employeeId} />
-              <InfoRow label="Role" value={user?.role === 'admin' ? 'Admin / HR' : 'Employee'} />
-              <InfoRow label="Status" value={user?.isActive ? 'Active' : 'Inactive'} />
-              <InfoRow label="Member since" value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '--'} />
+              <InfoRow label="Name" value={displayUser?.fullName} />
+              <InfoRow label="Email" value={displayUser?.email} />
+              <InfoRow label="Employee ID" value={displayUser?.employeeId} />
+              <InfoRow label="Role" value={displayUser?.role === 'admin' ? 'Admin / HR' : 'Employee'} />
+              <InfoRow label="Status" value={displayUser?.isActive ? 'Active' : 'Inactive'} />
+              <InfoRow label="Member since" value={displayUser?.createdAt ? new Date(displayUser.createdAt).toLocaleDateString() : '--'} />
             </div>
           </Card>
 

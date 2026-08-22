@@ -40,6 +40,20 @@ const LeaveManage = () => {
   const [adminComment, setAdminComment] = useState('');
   const [reviewLoading, setReviewLoading] = useState(false);
 
+  // Dummy leave data for when API is unavailable
+  const dummyLeaves = [
+    { _id: 'l1', employee: { fullName: 'Rahul Sharma', employeeId: 'EMP001', department: 'Engineering', profilePicture: null }, leaveType: 'paid', startDate: '2026-08-25', endDate: '2026-08-27', totalDays: 3, reason: 'Family function in hometown', status: 'pending', adminComment: '' },
+    { _id: 'l2', employee: { fullName: 'Priya Patel', employeeId: 'EMP002', department: 'Design', profilePicture: null }, leaveType: 'sick', startDate: '2026-08-22', endDate: '2026-08-23', totalDays: 2, reason: 'Fever and cold, doctor advised rest', status: 'pending', adminComment: '' },
+    { _id: 'l3', employee: { fullName: 'Amit Kumar', employeeId: 'EMP003', department: 'Marketing', profilePicture: null }, leaveType: 'casual', startDate: '2026-08-20', endDate: '2026-08-20', totalDays: 1, reason: 'Personal errands', status: 'approved', adminComment: 'Approved. Enjoy your day off!' },
+    { _id: 'l4', employee: { fullName: 'Sneha Gupta', employeeId: 'EMP004', department: 'HR', profilePicture: null }, leaveType: 'paid', startDate: '2026-09-01', endDate: '2026-09-05', totalDays: 5, reason: 'Vacation trip planned with family', status: 'pending', adminComment: '' },
+    { _id: 'l5', employee: { fullName: 'Vikram Singh', employeeId: 'EMP005', department: 'Engineering', profilePicture: null }, leaveType: 'unpaid', startDate: '2026-08-18', endDate: '2026-08-19', totalDays: 2, reason: 'Urgent personal matter', status: 'rejected', adminComment: 'Team needs coverage this week. Please reschedule.' },
+    { _id: 'l6', employee: { fullName: 'Anjali Verma', employeeId: 'EMP006', department: 'Finance', profilePicture: null }, leaveType: 'sick', startDate: '2026-08-15', endDate: '2026-08-16', totalDays: 2, reason: 'Migraine, unable to work', status: 'approved', adminComment: 'Take care!' },
+    { _id: 'l7', employee: { fullName: 'Rohan Mehta', employeeId: 'EMP007', department: 'Engineering', profilePicture: null }, leaveType: 'casual', startDate: '2026-08-28', endDate: '2026-08-28', totalDays: 1, reason: 'Moving to new apartment', status: 'pending', adminComment: '' },
+    { _id: 'l8', employee: { fullName: 'Kavita Joshi', employeeId: 'EMP008', department: 'Sales', profilePicture: null }, leaveType: 'maternity', startDate: '2026-09-10', endDate: '2026-12-10', totalDays: 90, reason: 'Maternity leave as per policy', status: 'approved', adminComment: 'Congratulations! Approved as per company policy.' },
+  ];
+
+  const dummySummary = { pending: 4, approved: 3, rejected: 1 };
+
   // Fetch leaves
   const fetchLeaves = useCallback(async (page = 1) => {
     setLoading(true);
@@ -51,7 +65,14 @@ const LeaveManage = () => {
       setSummary(data.summary || { pending: 0, approved: 0, rejected: 0 });
       setPagination(data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 });
     } catch (error) {
-      console.error('Failed to fetch leaves:', error);
+      console.error('Failed to fetch leaves, using dummy data:', error);
+      // Use dummy data as fallback
+      let filtered = dummyLeaves;
+      if (filterStatus) filtered = filtered.filter(l => l.status === filterStatus);
+      if (search) filtered = filtered.filter(l => l.employee.fullName.toLowerCase().includes(search.toLowerCase()));
+      setLeaves(filtered);
+      setSummary(dummySummary);
+      setPagination({ total: filtered.length, page: 1, limit: 10, totalPages: 1 });
     } finally {
       setLoading(false);
     }

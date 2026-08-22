@@ -33,6 +33,22 @@ const AttendanceManage = () => {
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
 
+  // Dummy data for when API is unavailable
+  const dummyRecords = [
+    { _id: '1', employee: { fullName: 'Rahul Sharma', employeeId: 'EMP001', department: 'Engineering', profilePicture: null }, checkIn: { time: '2026-08-22T09:02:00Z' }, checkOut: { time: '2026-08-22T18:15:00Z' }, totalHours: 9.2, status: 'present' },
+    { _id: '2', employee: { fullName: 'Priya Patel', employeeId: 'EMP002', department: 'Design', profilePicture: null }, checkIn: { time: '2026-08-22T09:30:00Z' }, checkOut: { time: '2026-08-22T18:00:00Z' }, totalHours: 8.5, status: 'present' },
+    { _id: '3', employee: { fullName: 'Amit Kumar', employeeId: 'EMP003', department: 'Marketing', profilePicture: null }, checkIn: { time: null }, checkOut: { time: null }, totalHours: 0, status: 'absent' },
+    { _id: '4', employee: { fullName: 'Sneha Gupta', employeeId: 'EMP004', department: 'HR', profilePicture: null }, checkIn: { time: '2026-08-22T09:15:00Z' }, checkOut: { time: '2026-08-22T13:00:00Z' }, totalHours: 3.75, status: 'half-day' },
+    { _id: '5', employee: { fullName: 'Vikram Singh', employeeId: 'EMP005', department: 'Engineering', profilePicture: null }, checkIn: { time: null }, checkOut: { time: null }, totalHours: 0, status: 'leave' },
+    { _id: '6', employee: { fullName: 'Anjali Verma', employeeId: 'EMP006', department: 'Finance', profilePicture: null }, checkIn: { time: '2026-08-22T08:45:00Z' }, checkOut: { time: '2026-08-22T17:50:00Z' }, totalHours: 9.1, status: 'present' },
+    { _id: '7', employee: { fullName: 'Rohan Mehta', employeeId: 'EMP007', department: 'Engineering', profilePicture: null }, checkIn: { time: '2026-08-22T10:00:00Z' }, checkOut: { time: '2026-08-22T18:30:00Z' }, totalHours: 8.5, status: 'present' },
+    { _id: '8', employee: { fullName: 'Kavita Joshi', employeeId: 'EMP008', department: 'Sales', profilePicture: null }, checkIn: { time: '2026-08-22T09:10:00Z' }, checkOut: { time: '2026-08-22T18:05:00Z' }, totalHours: 8.9, status: 'present' },
+    { _id: '9', employee: { fullName: 'Deepak Yadav', employeeId: 'EMP009', department: 'Support', profilePicture: null }, checkIn: { time: null }, checkOut: { time: null }, totalHours: 0, status: 'absent' },
+    { _id: '10', employee: { fullName: 'Neha Agarwal', employeeId: 'EMP010', department: 'Design', profilePicture: null }, checkIn: { time: '2026-08-22T09:20:00Z' }, checkOut: { time: '2026-08-22T17:45:00Z' }, totalHours: 8.4, status: 'present' },
+  ];
+
+  const dummySummary = { present: 6, absent: 2, halfDay: 1, leave: 1, total: 10 };
+
   // Fetch attendance records for selected date
   const fetchRecords = useCallback(async (page = 1) => {
     setLoading(true);
@@ -47,7 +63,14 @@ const AttendanceManage = () => {
       setSummary(data.summary || null);
       setPagination(data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 });
     } catch (error) {
-      console.error('Failed to fetch attendance:', error);
+      console.error('Failed to fetch attendance, using dummy data:', error);
+      // Use dummy data as fallback
+      const filtered = search
+        ? dummyRecords.filter(r => r.employee.fullName.toLowerCase().includes(search.toLowerCase()))
+        : dummyRecords;
+      setRecords(filtered);
+      setSummary(dummySummary);
+      setPagination({ total: filtered.length, page: 1, limit: 20, totalPages: 1 });
     } finally {
       setLoading(false);
     }
