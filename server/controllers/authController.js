@@ -1,6 +1,5 @@
 const User = require('../models/User');
-const { generateAccessToken, generateRefreshToken, generateVerificationToken } = require('../utils/generateToken');
-const { sendVerificationEmail } = require('../utils/sendEmail');
+const { generateAccessToken, generateRefreshToken } = require('../utils/generateToken');
 const jwt = require('jsonwebtoken');
 
 /**
@@ -25,34 +24,20 @@ const register = async (req, res) => {
       });
     }
 
-    // Generate email verification token
-    const verificationToken = generateVerificationToken();
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Create user
+    // Create user (email verification disabled — auto-verified)
     const user = new User({
       employeeId: employeeId.toUpperCase(),
       fullName,
       email,
       password,
       role: role || 'employee',
-      verificationToken,
-      verificationTokenExpires,
-      // Auto-verify if email service is not configured
-      isVerified: !process.env.EMAIL_USER || !process.env.EMAIL_PASS ? true : false,
+      isVerified: true, // Auto-verify all users (email verification disabled)
     });
     await user.save();
 
-    // Send verification email (non-blocking — don't fail registration if email fails)
-    const emailSent = process.env.EMAIL_USER && process.env.EMAIL_PASS
-      ? await sendVerificationEmail(email, fullName, verificationToken)
-      : false;
-
     res.status(201).json({
       success: true,
-      message: user.isVerified
-        ? 'Registration successful! You can now sign in.'
-        : 'Registration successful! Please check your email to verify your account.',
+      message: 'Registration successful! You can now sign in.',
       user: user.toSafeObject(),
     });
   } catch (error) {
@@ -119,14 +104,14 @@ const login = async (req, res) => {
       });
     }
 
-    // Check email verification
-    if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your email address before logging in.',
-        code: 'EMAIL_NOT_VERIFIED',
-      });
-    }
+    // Email verification check disabled — can be re-enabled later
+    // if (!user.isVerified) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Please verify your email address before logging in.',
+    //     code: 'EMAIL_NOT_VERIFIED',
+    //   });
+    // }
 
     // Generate tokens
     const accessToken = generateAccessToken(user._id, user.role);
