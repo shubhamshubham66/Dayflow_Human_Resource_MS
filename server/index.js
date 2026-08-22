@@ -58,6 +58,12 @@ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 // Activity routes
 app.use('/api/activities', require('./routes/activityRoutes'));
 
+// Attendance routes
+app.use('/api/attendance', require('./routes/attendanceRoutes'));
+
+// Leave routes
+app.use('/api/leaves', require('./routes/leaveRoutes'));
+
 // ============================================
 // ERROR HANDLING
 // ============================================
