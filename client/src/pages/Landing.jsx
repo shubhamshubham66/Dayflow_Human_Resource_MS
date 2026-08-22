@@ -611,12 +611,36 @@ const FadeIn = ({ children, delay = 0 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (!ref.current) {
+      setIsVisible(true);
+      return;
+    }
+
+    // Fallback: if IntersectionObserver is not supported, show immediately
+    if (!('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); } },
-      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.05, rootMargin: '0px 0px 0px 0px' }
     );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
+
+    observer.observe(ref.current);
+
+    // Safety: ensure elements become visible after 1.5s even if observer doesn't fire
+    const timeout = setTimeout(() => setIsVisible(true), 1500);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
   }, []);
 
   return (
