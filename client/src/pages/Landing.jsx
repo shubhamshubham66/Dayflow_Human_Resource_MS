@@ -91,13 +91,13 @@ const LandingNavbar = () => {
           <div className="hidden md:flex items-center gap-3">
             <Link
               to="/signin"
-              className="px-5 py-2.5 text-sm font-semibold text-primary-600 border-2 border-primary-400 rounded-lg hover:bg-primary-50 transition-all"
+              className="px-5 py-2.5 text-sm font-semibold text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
             >
               Sign In
             </Link>
             <Link
               to="/signup"
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-primary-500 rounded-lg hover:bg-primary-600 shadow-sm transition-all"
+              className="px-5 py-2.5 text-sm font-semibold text-white bg-[#73b234] rounded-lg hover:bg-[#5a9a1f] shadow-sm transition-all"
             >
               Get Started
             </Link>
@@ -134,7 +134,7 @@ const LandingNavbar = () => {
 // ============================================================
 const HeroSection = () => {
   return (
-    <section id="home" className="relative pt-24 lg:pt-32 pb-16 lg:pb-24 bg-gradient-to-b from-primary-50/60 via-primary-50/30 to-white overflow-hidden">
+    <section id="home" className="relative pt-24 lg:pt-32 pb-16 lg:pb-24 bg-gradient-to-b from-[#e8f5e9] via-[#f1f8e9] to-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           {/* Left: Content */}
@@ -143,7 +143,7 @@ const HeroSection = () => {
               {/* Big italic headline */}
               <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-extrabold text-gray-900 leading-[1.15] italic">
                 One Easy-to-Use{' '}
-                <span className="text-primary-500">Platform</span> for Everything HR
+                <span className="text-[#73b234]">Platform</span> for Everything HR
               </h1>
 
               {/* Subheadline */}
@@ -162,14 +162,14 @@ const HeroSection = () => {
               <div className="mt-10 flex flex-col sm:flex-row gap-3 max-w-md">
                 <Link
                   to="/signup"
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-bold text-white bg-primary-500 rounded-xl hover:bg-primary-600 shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-bold text-white bg-[#73b234] rounded-xl hover:bg-[#5a9a1f] shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
                 >
                   Get Started Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link
                   to="/signin"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-semibold text-primary-600 border-2 border-primary-400 rounded-xl hover:bg-primary-50 transition-all"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-semibold text-[#73b234] border-2 border-[#73b234] rounded-xl hover:bg-green-50 transition-all"
                 >
                   Sign In
                 </Link>
@@ -222,7 +222,7 @@ const HeroSection = () => {
                   <p className="text-[10px] font-semibold text-gray-600 mb-2">Weekly Hours</p>
                   <div className="flex gap-1.5 items-end h-12">
                     {[65, 80, 55, 90, 72, 85, 40].map((h, i) => (
-                      <div key={i} className="flex-1 bg-gradient-to-t from-primary-500 to-primary-300 rounded-t-sm" style={{ height: `${h}%` }} />
+                      <div key={i} className="flex-1 bg-gradient-to-t from-[#73b234] to-[#a4d65e] rounded-t-sm" style={{ height: `${h}%` }} />
                     ))}
                   </div>
                 </div>
