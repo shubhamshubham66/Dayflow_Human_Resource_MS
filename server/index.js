@@ -32,6 +32,10 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
+      // In development, allow any localhost port (Vite may pick 5174, 5175…)
+      if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+        return callback(null, true);
+      }
       if (allowedOrigins.some((allowed) => origin.startsWith(allowed) || origin.includes('vercel.app'))) {
         return callback(null, true);
       }
