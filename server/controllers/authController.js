@@ -119,35 +119,76 @@ const sendOtp = async (req, res) => {
 };
 
 /**
- * @desc    Register a new user (email OTP + Firebase phone verification)
+ * @desc    Verify the email OTP and return a short-lived "email verified" token
+ * @route   POST /api/auth/verify-otp
+ * @access  Public
+ */
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const otpError = await checkEmailOtp(email, otp);
+    if (otpError) {
+      return res.status(400).json({ success: false, message: otpError });
+    }
+    const emailToken = jwt.sign(
+      { email: email.toLowerCase(), purpose: 'email-verified' },
+      process.env.JWT_SECRET,
+      { expiresIn: '30m' }
+    );
+    res.status(200).json({ success: true, message: 'Email verified successfully.', emailToken });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ success: false, message: 'Failed to verify OTP.' });
+  }
+};
+
+/**
+ * @desc    Register a new user (email must be verified first via /verify-otp)
  * @route   POST /api/auth/register
  * @access  Public
  */
 const register = async (req, res) => {
   try {
-    const { employeeId, fullName, email, password, role, otp, firebaseIdToken } = req.body;
+    const { employeeId, fullName, email, password, role, otp, emailToken, firebaseIdToken } = req.body;
 
-    // 1. Verify phone (Firebase ID token from the client)
-    let verifiedPhone;
-    try {
-      verifiedPhone = await verifyPhoneToken(firebaseIdToken);
-    } catch (err) {
-      console.error('Phone token verification failed:', err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Mobile number verification failed or expired. Please verify your number again.',
-      });
+    // 1. Optional: mobile number verified with Firebase (currently disabled in the UI)
+    let verifiedPhone = '';
+    if (firebaseIdToken) {
+      try {
+        verifiedPhone = await verifyPhoneToken(firebaseIdToken);
+      } catch (err) {
+        console.error('Phone token verification failed:', err.message);
+        return res.status(400).json({
+          success: false,
+          message: 'Mobile number verification failed or expired. Please verify your number again.',
+        });
+      }
+      const phoneTaken = await User.findOne({ phone: verifiedPhone });
+      if (phoneTaken) {
+        return res.status(409).json({ success: false, message: 'This mobile number is already registered.' });
+      }
     }
 
-    const phoneTaken = await User.findOne({ phone: verifiedPhone });
-    if (phoneTaken) {
-      return res.status(409).json({ success: false, message: 'This mobile number is already registered.' });
-    }
-
-    // 2. Verify email OTP
-    const otpError = await checkEmailOtp(email, otp);
-    if (otpError) {
-      return res.status(400).json({ success: false, message: otpError });
+    // 2. Email verification: prefer the token from /verify-otp, fall back to a raw OTP
+    if (emailToken) {
+      try {
+        const decoded = jwt.verify(emailToken, process.env.JWT_SECRET);
+        if (decoded.purpose !== 'email-verified' || decoded.email !== email.toLowerCase()) {
+          throw new Error('Token does not match this email');
+        }
+      } catch (err) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email verification expired or invalid. Please verify your email again.',
+        });
+      }
+    } else if (otp) {
+      const otpError = await checkEmailOtp(email, otp);
+      if (otpError) {
+        return res.status(400).json({ success: false, message: otpError });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: 'Please verify your email first.' });
     }
 
     // Check if user already exists
@@ -173,7 +214,7 @@ const register = async (req, res) => {
       phone: verifiedPhone,
       isVerified: true,
       isEmailVerified: true,
-      isPhoneVerified: true,
+      isPhoneVerified: !!verifiedPhone,
     });
     await user.save();
 
@@ -375,4 +416,5 @@ module.exports = {
   logout,
   resendVerification,
   sendOtp,
+  verifyOtp,
 };

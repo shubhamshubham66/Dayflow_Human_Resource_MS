@@ -11,6 +11,7 @@ const {
   logout,
   resendVerification,
   sendOtp,
+  verifyOtp,
 } = require('../controllers/authController');
 
 const router = express.Router();
@@ -41,6 +42,24 @@ router.post(
   ],
   validate,
   sendOtp
+);
+
+// POST /api/auth/verify-otp (check email OTP → short-lived email token)
+router.post(
+  '/verify-otp',
+  [
+    body('email')
+      .trim()
+      .isEmail()
+      .withMessage('Please enter a valid email address')
+      .normalizeEmail(),
+    body('otp')
+      .trim()
+      .matches(/^\d{6}$/)
+      .withMessage('OTP must be 6 digits'),
+  ],
+  validate,
+  verifyOtp
 );
 
 // POST /api/auth/register
@@ -75,15 +94,17 @@ router.post(
       .optional()
       .isIn(['employee', 'admin'])
       .withMessage('Role must be either employee or admin'),
+    body('emailToken').optional().isString(),
     body('otp')
+      .optional()
       .trim()
-      .notEmpty()
-      .withMessage('OTP is required')
-      .isLength({ min: 6, max: 6 })
+      .matches(/^\d{6}$/)
       .withMessage('OTP must be 6 digits'),
-    body('firebaseIdToken')
-      .notEmpty()
-      .withMessage('Please verify your mobile number first'),
+    body('firebaseIdToken').optional().isString(),
+    body().custom((value) => {
+      if (!value.emailToken && !value.otp) throw new Error('Please verify your email first');
+      return true;
+    }),
   ],
   validate,
   register

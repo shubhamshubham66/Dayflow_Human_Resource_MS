@@ -13,7 +13,15 @@ const authService = {
   },
 
   /**
-   * Register a new user (with OTP)
+   * Verify the email OTP → returns { emailToken } used by register
+   */
+  verifyOtp: async (email, otp) => {
+    const response = await api.post('/auth/verify-otp', { email, otp });
+    return response.data;
+  },
+
+  /**
+   * Register a new user (with emailToken from verifyOtp)
    */
   register: async (userData) => {
     const response = await api.post('/auth/register', userData);
