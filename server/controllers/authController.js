@@ -126,6 +126,13 @@ const sendOtp = async (req, res) => {
 const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET is not set — cannot issue email verification token.');
+      return res.status(500).json({
+        success: false,
+        message: 'Server setup error: JWT_SECRET is missing. Please contact the admin.',
+      });
+    }
     const otpError = await checkEmailOtp(email, otp);
     if (otpError) {
       return res.status(400).json({ success: false, message: otpError });
