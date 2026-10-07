@@ -17,4 +17,5 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-auth.useDeviceLanguage();
+// Note: don't call auth.useDeviceLanguage() — browser locales longer than 6 chars
+// (e.g. "zh-Hant-TW", "en-US@posix") make Firebase phone auth fail with auth/argument-error.
