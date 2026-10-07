@@ -77,4 +77,46 @@ const sendVerificationEmail = async (email, fullName, verificationToken) => {
   }
 };
 
-module.exports = { sendVerificationEmail };
+/**
+ * Send a 6-digit OTP to the user's email.
+ * Returns true on success, false on failure (caller decides what to do).
+ */
+const sendOtpEmail = async (email, otp, expiryMinutes = 5) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('⚠️  EMAIL_USER / EMAIL_PASS not set — cannot send OTP email.');
+    return false;
+  }
+
+  const transporter = createTransporter();
+  const mailOptions = {
+    from: `"Dayflow HRMS" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `${otp} is your Dayflow verification code`,
+    text: `Your Dayflow verification code is ${otp}. It expires in ${expiryMinutes} minutes. If you didn't request this, ignore this email.`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 20px;">
+        <h1 style="color: #2f5597; font-size: 24px; margin: 0 0 4px; text-align: center;">Dayflow</h1>
+        <p style="color: #6b7280; font-size: 13px; margin: 0 0 24px; text-align: center;">Human Resource Management System</p>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px; text-align: center;">
+          <p style="color: #4b5563; font-size: 15px; margin: 0 0 16px;">Your email verification code is</p>
+          <p style="font-size: 34px; font-weight: 700; letter-spacing: 8px; color: #1f2937; margin: 0 0 16px; font-family: monospace;">${otp}</p>
+          <p style="color: #9ca3af; font-size: 13px; margin: 0;">This code expires in ${expiryMinutes} minutes. Don't share it with anyone.</p>
+        </div>
+        <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 20px;">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`📧 OTP email sent to ${email} (Message ID: ${info.messageId})`);
+    return true;
+  } catch (error) {
+    console.error(`❌ OTP email failed: ${error.message}`);
+    return false;
+  }
+};
+
+module.exports = { sendVerificationEmail, sendOtpEmail };

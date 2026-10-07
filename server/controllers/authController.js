@@ -1,93 +1,154 @@
 const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateToken');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const Otp = require('../models/Otp');
+const { sendOtpEmail } = require('../utils/sendEmail');
+const { verifyPhoneToken } = require('../utils/firebaseAdmin');
 
 // ============================================
-// IN-MEMORY OTP STORE (for on-screen OTP verification)
-// In production, use Redis for multi-instance support
+// EMAIL OTP SETTINGS
 // ============================================
-const otpStore = new Map(); // key: email, value: { otp, expiresAt }
+const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_MAX_ATTEMPTS = 5;
 
 /**
- * @desc    Generate and return OTP for email verification
+ * Generate a 6-digit OTP, save its hash and email it.
+ * Shared by /send-otp and /resend-verification.
+ */
+const issueEmailOtp = async (email, res) => {
+  const normalizedEmail = email.toLowerCase();
+
+  // Resend cooldown
+  const existing = await Otp.findOne({ email: normalizedEmail });
+  if (existing && existing.lastSentAt) {
+    const secondsSince = (Date.now() - existing.lastSentAt.getTime()) / 1000;
+    if (secondsSince < OTP_RESEND_COOLDOWN_SECONDS) {
+      const wait = Math.ceil(OTP_RESEND_COOLDOWN_SECONDS - secondsSince);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${wait}s before requesting a new OTP.`,
+        retryAfter: wait,
+      });
+    }
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const otpHash = await Otp.hashOtp(otp);
+
+  await Otp.findOneAndUpdate(
+    { email: normalizedEmail },
+    {
+      otpHash,
+      attempts: 0,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
+      lastSentAt: new Date(),
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  const sent = await sendOtpEmail(normalizedEmail, otp, OTP_EXPIRY_MINUTES);
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  if (!sent && !isDev) {
+    await Otp.deleteOne({ email: normalizedEmail });
+    return res.status(500).json({ success: false, message: 'Could not send OTP email. Please try again.' });
+  }
+
+  if (isDev) console.log(`📧 [dev] OTP for ${normalizedEmail}: ${otp}`);
+
+  return res.status(200).json({
+    success: true,
+    message: sent ? `OTP sent to ${normalizedEmail}.` : 'Email not configured — dev OTP returned.',
+    expiresIn: OTP_EXPIRY_MINUTES * 60,
+    resendIn: OTP_RESEND_COOLDOWN_SECONDS,
+    // Only in development AND only when email could not be sent
+    ...(isDev && !sent ? { devOtp: otp } : {}),
+  });
+};
+
+/**
+ * Check an email OTP. Returns null if valid, or an error message.
+ * Deletes the OTP on success or after too many wrong attempts.
+ */
+const checkEmailOtp = async (email, otp) => {
+  const record = await Otp.findOne({ email: email.toLowerCase() });
+  if (!record) return 'OTP not found. Please request a new OTP first.';
+  if (record.expiresAt < new Date()) {
+    await record.deleteOne();
+    return 'OTP has expired. Please request a new one.';
+  }
+  if (record.attempts >= OTP_MAX_ATTEMPTS) {
+    await record.deleteOne();
+    return 'Too many wrong attempts. Please request a new OTP.';
+  }
+  const ok = await record.compareOtp(otp);
+  if (!ok) {
+    record.attempts += 1;
+    await record.save();
+    const left = OTP_MAX_ATTEMPTS - record.attempts;
+    return `Invalid OTP. ${left} attempt${left === 1 ? '' : 's'} left.`;
+  }
+  await record.deleteOne();
+  return null;
+};
+
+/**
+ * @desc    Send OTP to email for verification
  * @route   POST /api/auth/send-otp
  * @access  Public
  */
 const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
-
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required.' });
     }
 
-    // Check if email already registered
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(409).json({ success: false, message: 'This email is already registered.' });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store OTP with 5-minute expiry
-    otpStore.set(email.toLowerCase(), {
-      otp,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-    });
-
-    // Clean up expired OTPs periodically
-    for (const [key, value] of otpStore.entries()) {
-      if (value.expiresAt < Date.now()) otpStore.delete(key);
-    }
-
-    console.log(`📧 OTP generated for ${email}: ${otp}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'OTP generated successfully.',
-      otp, // Sending OTP in response so it shows on screen
-      expiresIn: 300, // 5 minutes in seconds
-    });
+    return await issueEmailOtp(email, res);
   } catch (error) {
     console.error('Send OTP error:', error);
-    res.status(500).json({ success: false, message: 'Failed to generate OTP.' });
+    res.status(500).json({ success: false, message: 'Failed to send OTP.' });
   }
 };
 
 /**
- * @desc    Register a new user (with OTP verification)
+ * @desc    Register a new user (email OTP + Firebase phone verification)
  * @route   POST /api/auth/register
  * @access  Public
  */
 const register = async (req, res) => {
   try {
-    const { employeeId, fullName, email, password, role, otp } = req.body;
+    const { employeeId, fullName, email, password, role, otp, firebaseIdToken } = req.body;
 
-    // Verify OTP
-    const storedOtp = otpStore.get(email.toLowerCase());
-    if (!storedOtp) {
+    // 1. Verify phone (Firebase ID token from the client)
+    let verifiedPhone;
+    try {
+      verifiedPhone = await verifyPhoneToken(firebaseIdToken);
+    } catch (err) {
+      console.error('Phone token verification failed:', err.message);
       return res.status(400).json({
         success: false,
-        message: 'OTP not found. Please request a new OTP first.',
-      });
-    }
-    if (storedOtp.expiresAt < Date.now()) {
-      otpStore.delete(email.toLowerCase());
-      return res.status(400).json({
-        success: false,
-        message: 'OTP has expired. Please request a new one.',
-      });
-    }
-    if (storedOtp.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid OTP. Please check and try again.',
+        message: 'Mobile number verification failed or expired. Please verify your number again.',
       });
     }
 
-    // OTP verified — remove from store
-    otpStore.delete(email.toLowerCase());
+    const phoneTaken = await User.findOne({ phone: verifiedPhone });
+    if (phoneTaken) {
+      return res.status(409).json({ success: false, message: 'This mobile number is already registered.' });
+    }
+
+    // 2. Verify email OTP
+    const otpError = await checkEmailOtp(email, otp);
+    if (otpError) {
+      return res.status(400).json({ success: false, message: otpError });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -109,7 +170,10 @@ const register = async (req, res) => {
       email,
       password,
       role: role || 'employee',
+      phone: verifiedPhone,
       isVerified: true,
+      isEmailVerified: true,
+      isPhoneVerified: true,
     });
     await user.save();
 
@@ -290,24 +354,16 @@ const logout = async (req, res) => {
  * @access  Public
  */
 const resendVerification = async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ success: false, message: 'Email is required.' });
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+    return await issueEmailOtp(email, res);
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({ success: false, message: 'Failed to resend OTP.' });
   }
-
-  // Generate new OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(email.toLowerCase(), {
-    otp,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'New OTP generated.',
-    otp,
-    expiresIn: 300,
-  });
 };
 
 module.exports = {

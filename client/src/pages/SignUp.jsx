@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Hash, User, Mail, Lock, Shield, Send, CheckCircle } from 'lucide-react';
+import { UserPlus, Hash, User, Mail, Lock, Shield, Send, CheckCircle, Smartphone } from 'lucide-react';
+import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 import toast from 'react-hot-toast';
 import AuthLayout from '../components/layout/AuthLayout';
 import Input from '../components/ui/Input';
@@ -19,10 +21,25 @@ import {
 import authService from '../services/authService';
 
 /**
- * Sign Up Page — With On-Screen OTP Verification
- * Step 1: Fill form + enter email → Click "Send OTP" → OTP shows on screen
- * Step 2: Enter OTP → Submit → Account created
+ * Sign Up Page — Email OTP + Mobile OTP verification
+ * 1. Email: "Send OTP" → 6-digit code arrives by email → enter it
+ * 2. Mobile: "Send OTP" → SMS via Firebase → enter code → "Verify"
+ * 3. Submit → backend checks the email OTP and the Firebase phone token
  */
+
+// Friendly messages for common Firebase phone-auth errors
+const firebaseErrorMessage = (error) => {
+  const map = {
+    'auth/invalid-phone-number': 'Invalid mobile number.',
+    'auth/too-many-requests': 'Too many attempts. Please try again later.',
+    'auth/quota-exceeded': 'SMS limit reached for today. Please try again tomorrow.',
+    'auth/invalid-verification-code': 'Wrong OTP. Please check and try again.',
+    'auth/code-expired': 'OTP expired. Please request a new one.',
+    'auth/captcha-check-failed': 'Captcha check failed. Please refresh and try again.',
+    'auth/network-request-failed': 'Network error. Check your internet connection.',
+  };
+  return map[error?.code] || error?.message || 'Mobile verification failed.';
+};
 const SignUp = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,19 +47,48 @@ const SignUp = () => {
 
   // OTP State
   const [otpSent, setOtpSent] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [devOtp, setDevOtp] = useState(''); // only set in dev when email isn't configured
   const [otpInput, setOtpInput] = useState('');
   const [otpError, setOtpError] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpTimer, setOtpTimer] = useState(0);
 
-  // OTP countdown timer
+  // Phone OTP State
+  const [phone, setPhone] = useState('');
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [sendingPhoneOtp, setSendingPhoneOtp] = useState(false);
+  const [verifyingPhoneOtp, setVerifyingPhoneOtp] = useState(false);
+  const [phoneTimer, setPhoneTimer] = useState(0);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [firebaseIdToken, setFirebaseIdToken] = useState('');
+  const confirmationRef = useRef(null);
+  const recaptchaRef = useRef(null);
+
+  // Email OTP resend countdown
   useEffect(() => {
     if (otpTimer > 0) {
       const interval = setInterval(() => setOtpTimer((t) => t - 1), 1000);
       return () => clearInterval(interval);
     }
   }, [otpTimer]);
+
+  // Phone OTP resend countdown
+  useEffect(() => {
+    if (phoneTimer > 0) {
+      const interval = setInterval(() => setPhoneTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [phoneTimer]);
+
+  // Clean up invisible reCAPTCHA on unmount
+  useEffect(() => {
+    return () => {
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
+    };
+  }, []);
 
   // Form validation
   const {
@@ -108,16 +154,72 @@ const SignUp = () => {
     setOtpError('');
     try {
       const data = await authService.sendOtp(values.email);
-      setGeneratedOtp(data.otp);
+      setDevOtp(data.devOtp || '');
       setOtpSent(true);
-      setOtpTimer(300); // 5 minutes
-      toast.success('OTP generated! Enter it below to verify.');
+      setOtpInput('');
+      setOtpTimer(data.resendIn || 60);
+      toast.success(data.devOtp ? 'Dev mode: OTP shown below.' : 'OTP sent! Check your email inbox.');
     } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to generate OTP';
+      const msg = error.response?.data?.message || 'Failed to send OTP';
+      if (error.response?.data?.retryAfter) setOtpTimer(error.response.data.retryAfter);
       toast.error(msg);
-      setServerError(msg);
     } finally {
       setSendingOtp(false);
+    }
+  };
+
+  // Send mobile OTP via Firebase
+  const handleSendPhoneOtp = async () => {
+    setPhoneError('');
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setPhoneError('Enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+
+    setSendingPhoneOtp(true);
+    try {
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      }
+      confirmationRef.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptchaRef.current);
+      setPhoneOtpSent(true);
+      setPhoneOtp('');
+      setPhoneTimer(60);
+      toast.success(`OTP sent to +91 ${phone}`);
+    } catch (error) {
+      console.error('Phone OTP error:', error);
+      const msg = firebaseErrorMessage(error);
+      setPhoneError(msg);
+      toast.error(msg);
+      // reCAPTCHA can't be reused after an error — reset it
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
+    } finally {
+      setSendingPhoneOtp(false);
+    }
+  };
+
+  // Verify mobile OTP and get a Firebase ID token for the backend
+  const handleVerifyPhoneOtp = async () => {
+    setPhoneError('');
+    if (phoneOtp.length !== 6) {
+      setPhoneError('OTP must be 6 digits');
+      return;
+    }
+    setVerifyingPhoneOtp(true);
+    try {
+      const result = await confirmationRef.current.confirm(phoneOtp);
+      const token = await result.user.getIdToken();
+      setFirebaseIdToken(token);
+      setPhoneVerified(true);
+      setPhoneTimer(0);
+      toast.success('Mobile number verified!');
+    } catch (error) {
+      const msg = firebaseErrorMessage(error);
+      setPhoneError(msg);
+      toast.error(msg);
+    } finally {
+      setVerifyingPhoneOtp(false);
     }
   };
 
@@ -129,7 +231,13 @@ const SignUp = () => {
 
     if (!validateAll()) return;
 
-    // Check OTP
+    if (!phoneVerified || !firebaseIdToken) {
+      setPhoneError('Please verify your mobile number first.');
+      toast.error('Please verify your mobile number first.');
+      return;
+    }
+
+    // Check email OTP
     if (!otpSent) {
       toast.error('Please send OTP first by clicking "Send OTP".');
       return;
@@ -153,7 +261,11 @@ const SignUp = () => {
         confirmPassword: values.confirmPassword,
         role: values.role,
         otp: otpInput,
+        firebaseIdToken,
       });
+
+      // Phone is saved in our DB now — end the temporary Firebase session
+      signOut(auth).catch(() => {});
 
       toast.success('Account created successfully!');
       navigate('/signin', {
@@ -238,30 +350,30 @@ const SignUp = () => {
           </div>
         </div>
 
-        {/* OTP Display + Input Section */}
+        {/* Email OTP Input */}
         {otpSent && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-xl animate-slide-down">
             <div className="flex items-center gap-2 mb-3">
               <CheckCircle className="w-5 h-5 text-green-600" />
-              <p className="text-sm font-semibold text-green-800">OTP Generated!</p>
-            </div>
-
-            {/* Show OTP on screen */}
-            <div className="bg-white rounded-lg p-3 text-center mb-3 border border-green-200">
-              <p className="text-xs text-gray-500 mb-1">Your verification OTP:</p>
-              <p className="text-3xl font-bold text-primary-600 tracking-[0.3em] font-mono">
-                {generatedOtp}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Expires in {otpTimer > 0 ? formatTimer(otpTimer) : 'expired'}
+              <p className="text-sm font-semibold text-green-800">
+                OTP sent to {values.email}
               </p>
             </div>
 
-            {/* OTP Input */}
+            {/* Dev-only fallback when the server has no email credentials */}
+            {devOtp && (
+              <div className="bg-white rounded-lg p-3 text-center mb-3 border border-amber-200">
+                <p className="text-xs text-amber-600 mb-1">Dev mode (email not configured) — your OTP:</p>
+                <p className="text-2xl font-bold text-primary-600 tracking-[0.3em] font-mono">{devOtp}</p>
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Enter OTP to verify</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Enter email OTP</label>
               <input
                 type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 value={otpInput}
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -273,20 +385,91 @@ const SignUp = () => {
                 className={`w-full px-4 py-3 border rounded-lg text-center text-lg font-mono font-bold tracking-[0.2em]
                   focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all
                   ${otpError ? 'border-red-400' : 'border-gray-200'}
-                  ${otpInput.length === 6 && otpInput === generatedOtp ? 'border-green-400 bg-green-50' : ''}
                 `}
               />
-              {otpError && (
-                <p className="text-xs text-red-500 mt-1">{otpError}</p>
-              )}
-              {otpInput.length === 6 && otpInput === generatedOtp && (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> OTP verified!
-                </p>
-              )}
+              {otpError && <p className="text-xs text-red-500 mt-1">{otpError}</p>}
+              <p className="text-xs text-gray-400 mt-1">Didn't get it? Check spam, or resend after the timer.</p>
             </div>
           </div>
         )}
+
+        {/* Mobile Number + Firebase OTP */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Mobile Number</label>
+          <div className="flex gap-2">
+            <div className="flex items-center gap-1.5 px-3 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
+              <Smartphone className="w-4 h-4 text-gray-400" />
+              +91
+            </div>
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              disabled={phoneVerified}
+              onChange={(e) => {
+                setPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
+                setPhoneError('');
+              }}
+              placeholder="9876543210"
+              maxLength={10}
+              className={`flex-1 min-w-0 px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all disabled:bg-green-50
+                ${phoneError ? 'border-red-400' : phoneVerified ? 'border-green-400' : 'border-gray-200'}`}
+            />
+          </div>
+
+          {phoneVerified ? (
+            <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" /> Mobile number verified
+            </p>
+          ) : (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={handleSendPhoneOtp}
+                disabled={sendingPhoneOtp || phoneTimer > 0}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="w-3.5 h-3.5" />
+                {sendingPhoneOtp
+                  ? 'Sending...'
+                  : phoneTimer > 0
+                    ? `Resend in ${formatTimer(phoneTimer)}`
+                    : phoneOtpSent ? 'Resend OTP' : 'Send OTP'}
+              </button>
+            </div>
+          )}
+
+          {phoneOtpSent && !phoneVerified && (
+            <div className="mt-3 flex gap-2 animate-slide-down">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={phoneOtp}
+                onChange={(e) => {
+                  setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  setPhoneError('');
+                }}
+                placeholder="SMS OTP"
+                maxLength={6}
+                className="flex-1 min-w-0 px-4 py-2.5 border border-gray-200 rounded-lg text-center font-mono font-bold tracking-[0.2em] focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500"
+              />
+              <button
+                type="button"
+                onClick={handleVerifyPhoneOtp}
+                disabled={verifyingPhoneOtp || phoneOtp.length !== 6}
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {verifyingPhoneOtp ? 'Verifying...' : 'Verify'}
+              </button>
+            </div>
+          )}
+
+          {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+
+          {/* Invisible reCAPTCHA required by Firebase phone auth */}
+          <div id="recaptcha-container" />
+        </div>
 
         {/* Password */}
         <div>
@@ -353,7 +536,7 @@ const SignUp = () => {
           isLoading={isSubmitting}
           icon={UserPlus}
           className="mt-6"
-          disabled={!otpSent || otpInput.length !== 6}
+          disabled={!otpSent || otpInput.length !== 6 || !phoneVerified}
         >
           Create Account
         </Button>

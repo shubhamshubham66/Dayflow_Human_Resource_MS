@@ -81,6 +81,9 @@ router.post(
       .withMessage('OTP is required')
       .isLength({ min: 6, max: 6 })
       .withMessage('OTP must be 6 digits'),
+    body('firebaseIdToken')
+      .notEmpty()
+      .withMessage('Please verify your mobile number first'),
   ],
   validate,
   register
