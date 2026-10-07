@@ -37,6 +37,7 @@ const firebaseErrorMessage = (error) => {
     'auth/code-expired': 'OTP expired. Please request a new one.',
     'auth/captcha-check-failed': 'Captcha check failed. Please refresh and try again.',
     'auth/network-request-failed': 'Network error. Check your internet connection.',
+    'auth/operation-not-allowed': 'SMS to this region is not enabled. In Firebase: Authentication → Settings → SMS region policy → allow India.',
   };
   return map[error?.code] || error?.message || 'Mobile verification failed.';
 };
@@ -82,13 +83,32 @@ const SignUp = () => {
     }
   }, [phoneTimer]);
 
-  // Clean up invisible reCAPTCHA on unmount
-  useEffect(() => {
-    return () => {
+  // Fully remove the reCAPTCHA widget so a fresh one can be created later
+  const resetRecaptcha = () => {
+    try {
       recaptchaRef.current?.clear();
-      recaptchaRef.current = null;
-    };
-  }, []);
+    } catch {
+      /* already cleared */
+    }
+    recaptchaRef.current = null;
+    const container = document.getElementById('recaptcha-container');
+    if (container) container.innerHTML = '';
+  };
+
+  // Render the invisible reCAPTCHA into a brand-new element each time,
+  // so Firebase never sees an element that already has a widget
+  const getRecaptcha = () => {
+    if (recaptchaRef.current) return recaptchaRef.current;
+    const container = document.getElementById('recaptcha-container');
+    container.innerHTML = '';
+    const el = document.createElement('div');
+    container.appendChild(el);
+    recaptchaRef.current = new RecaptchaVerifier(auth, el, { size: 'invisible' });
+    return recaptchaRef.current;
+  };
+
+  // Clean up invisible reCAPTCHA on unmount
+  useEffect(() => resetRecaptcha, []);
 
   // Form validation
   const {
@@ -178,10 +198,7 @@ const SignUp = () => {
 
     setSendingPhoneOtp(true);
     try {
-      if (!recaptchaRef.current) {
-        recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-      }
-      confirmationRef.current = await signInWithPhoneNumber(auth, `+91${phone}`, recaptchaRef.current);
+      confirmationRef.current = await signInWithPhoneNumber(auth, `+91${phone}`, getRecaptcha());
       setPhoneOtpSent(true);
       setPhoneOtp('');
       setPhoneTimer(60);
@@ -192,8 +209,7 @@ const SignUp = () => {
       setPhoneError(msg);
       toast.error(msg);
       // reCAPTCHA can't be reused after an error — reset it
-      recaptchaRef.current?.clear();
-      recaptchaRef.current = null;
+      resetRecaptcha();
     } finally {
       setSendingPhoneOtp(false);
     }
