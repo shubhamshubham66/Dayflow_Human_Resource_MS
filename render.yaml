@@ -37,6 +37,8 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      - key: BREVO_API_KEY
+        sync: false # Brevo API key — needed because Render free plan blocks SMTP
       - key: FIREBASE_PROJECT_ID
         value: day-flow-9d3b1
       - key: OTP_EXPIRY_MINUTES
