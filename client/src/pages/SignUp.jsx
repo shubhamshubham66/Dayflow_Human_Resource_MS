@@ -37,6 +37,7 @@ const firebaseErrorMessage = (error) => {
     'auth/code-expired': 'OTP expired. Please request a new one.',
     'auth/captcha-check-failed': 'Captcha check failed. Please refresh and try again.',
     'auth/network-request-failed': 'Network error. Check your internet connection.',
+    'auth/billing-not-enabled': 'Real SMS needs Firebase billing (Blaze plan). Use a Firebase test number for now.',
     'auth/internal-error': 'Could not reach Firebase. Check your internet and try again.',
     'auth/operation-not-allowed': 'SMS to this region is not enabled. In Firebase: Authentication → Settings → SMS region policy → allow India.',
   };
