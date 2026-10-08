@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import ChatWidget from '../components/ChatWidget';
 import {
   Shield,
   Clock,
@@ -37,6 +38,7 @@ const Landing = () => {
       <TestimonialsSection />
       <CTASection />
       <Footer />
+      <ChatWidget />
     </div>
   );
 };
