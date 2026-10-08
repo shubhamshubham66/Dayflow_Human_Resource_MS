@@ -93,8 +93,8 @@ const ChatWidget = () => {
           aria-label="Dayflow Assistant"
           aria-hidden={!open}
           className={`fixed z-[60] bg-white border border-gray-200 shadow-2xl overflow-hidden flex flex-col
-            inset-x-3 top-20 bottom-28 rounded-2xl
-            sm:inset-auto sm:right-6 sm:bottom-32 sm:w-[400px] sm:h-[min(620px,calc(100vh-11rem))]
+            inset-2 rounded-2xl
+            md:inset-auto md:right-6 md:bottom-32 md:w-[min(880px,calc(100vw-3rem))] md:h-[min(720px,calc(100vh-10rem))]
             origin-bottom-right transition-all duration-200 ease-out
             ${open ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}
         >
@@ -143,7 +143,7 @@ const ChatWidget = () => {
               src={ASSISTANT_URL}
               title="Dayflow Assistant chat"
               className="w-full h-full border-0"
-              allow="clipboard-write; microphone"
+              allow="microphone; clipboard-write"
               onLoad={() => setReady(true)}
             />
           </div>
@@ -182,8 +182,8 @@ const ChatWidget = () => {
         aria-expanded={open}
         aria-controls="dayflow-assistant-panel"
         aria-label={open ? 'Close Dayflow Assistant' : 'Chat with Dayflow Assistant'}
-        className={`${open ? '' : 'df-launcher'} fixed z-[61] right-4 bottom-8 sm:right-6 sm:bottom-10
-          flex items-center gap-2.5 rounded-full bg-white border-2 shadow-xl hover:shadow-2xl
+        className={`${open ? 'hidden md:flex' : 'df-launcher flex'} fixed z-[61] right-4 bottom-8 sm:right-6 sm:bottom-10
+          items-center gap-2.5 rounded-full bg-white border-2 shadow-xl hover:shadow-2xl
           transition-shadow duration-200 active:scale-95
           focus:outline-none focus-visible:ring-4 focus-visible:ring-green-200
           ${open ? 'p-1.5' : 'pl-1.5 pr-5 py-1.5'}`}
