@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Hash, User, Mail, Lock, Send, CheckCircle, ShieldCheck } from 'lucide-react';
+import { UserPlus, Hash, User, Mail, Lock, Send, CheckCircle, ShieldCheck, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AuthLayout from '../components/layout/AuthLayout';
 import Input from '../components/ui/Input';
@@ -26,6 +26,9 @@ const SignUp = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
+  // Set once the account is created: the page stays here and shows a success
+  // screen with a Sign in button, instead of jumping to /signin on its own.
+  const [accountCreated, setAccountCreated] = useState(false);
 
   // Email OTP state
   const [otpSent, setOtpSent] = useState(false);
@@ -174,7 +177,7 @@ const SignUp = () => {
         emailToken,
       });
       toast.success('Account created successfully!');
-      navigate('/signin', { state: { message: 'Account created! You can now sign in.' } });
+      setAccountCreated(true);
     } catch (error) {
       const data = error.response?.data;
       const msg = data?.errors?.[0]?.message || data?.message || 'Registration failed. Please try again.';
@@ -184,6 +187,30 @@ const SignUp = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (accountCreated) {
+    return (
+      <AuthLayout title="Account created" subtitle="Your Dayflow account is ready">
+        <div className="text-center space-y-5">
+          <div className="mx-auto w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+          <p className="text-sm text-gray-600">
+            The account for <span className="font-medium text-gray-900">{values.email}</span> has been
+            created. Sign in with this email and the password you just set.
+          </p>
+          <Button
+            type="button"
+            fullWidth
+            icon={LogIn}
+            onClick={() => navigate('/signin', { state: { message: 'Account created! You can now sign in.' } })}
+          >
+            Go to Sign In
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout title="Create your account" subtitle="Join Dayflow and streamline your HR experience">
